@@ -1,0 +1,441 @@
+// عائلة أبو موسى الحربي — Database schema
+// Source of record: the handwritten notebook of سلامة سالم أبو موسى
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+
+enum Role {
+  MEMBER
+  EDITOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+/// How confident we are in the reading of a name from the manuscript.
+/// UNCERTAIN renders the ٭ marker used throughout the notebook.
+enum Confidence {
+  CONFIRMED
+  PROBABLE
+  UNCERTAIN
+}
+
+/// Historical dates are rarely exact. "نحو ١٨١٢م" is CIRCA, "قبل ١٩٤٨" is BEFORE.
+enum DatePrecision {
+  EXACT
+  CIRCA
+  BEFORE
+  AFTER
+  RANGE
+  UNKNOWN
+}
+
+enum PublishStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Who may see a record or asset. Enforced in the data-access layer, never in components.
+enum Visibility {
+  PUBLIC
+  MEMBERS
+  ADMIN
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MediaKind {
+  PHOTO
+  DOCUMENT
+  NOTEBOOK_SCAN
+}
+
+// ─────────────────────────── People ───────────────────────────
+
+model Person {
+  id String @id @default(cuid())
+
+  // Name. Arabic is canonical; Latin is transliteration, never translation.
+  name            String
+  nameLatin       String?
+  nameNormalized  String // alef/taa-marbuta unified, diacritics stripped
+  nameLatinNorm   String?
+  kunya           String? // e.g. أبو موسى
+  slug            String  @unique
+
+  gender         Gender     @default(UNKNOWN)
+  nameConfidence Confidence @default(CONFIRMED)
+
+  // Lineage
+  fatherId String?
+  father   Person?  @relation("Father", fields: [fatherId], references: [id], onDelete: SetNull)
+  children Person[] @relation("Father")
+
+  motherId       String?
+  mother         Person?  @relation("Mother", fields: [motherId], references: [id], onDelete: SetNull)
+  motherChildren Person[] @relation("Mother")
+
+  /// Birth order among siblings. Contributors supply this implicitly by listing
+  /// children oldest-to-youngest; they never type a code.
+  sortOrder Int @default(0)
+
+  /// Materialised path, e.g. "1.1.2.3". Derived from sortOrder — never hand-edited.
+  /// Indexed for prefix queries: all descendants of X = path LIKE 'X.%'
+  path       String @default("")
+  generation Int    @default(1)
+
+  // Fuzzy dates — display text plus bounds for sorting and timelines
+  birthDateText      String?
+  birthDateEarliest  DateTime?
+  birthDateLatest    DateTime?
+  birthDatePrecision DatePrecision @default(UNKNOWN)
+
+  deathDateText      String?
+  deathDateEarliest  DateTime?
+  deathDateLatest    DateTime?
+  deathDatePrecision DatePrecision @default(UNKNOWN)
+
+  /// Cached from death date + birth bounds. Drives the privacy layer.
+  isLiving Boolean @default(true)
+
+  // Places
+  birthPlaceId  String?
+  birthPlace    Place?  @relation("BirthPlace", fields: [birthPlaceId], references: [id])
+  deathPlaceId  String?
+  deathPlace    Place?  @relation("DeathPlace", fields: [deathPlaceId], references: [id])
+  burialPlaceId String?
+  burialPlace   Place?  @relation("BurialPlace", fields: [burialPlaceId], references: [id])
+  residenceId   String?
+  residence     Place?  @relation("Residence", fields: [residenceId], references: [id])
+
+  // Free text. Arabic-only by policy; English falls back with a marker.
+  biography      String?
+  occupation     String?
+  notes          String?
+  burialPlaceRaw String? // notebook wording before a Place record exists
+
+  // Contact — never public under any setting
+  phone String?
+  email String?
+
+  status           PublishStatus @default(PUBLISHED)
+  publicVisibility Visibility    @default(PUBLIC)
+  isMartyr         Boolean       @default(false)
+
+  marriagesAsHusband Marriage[]      @relation("Husband")
+  marriagesAsWife    Marriage[]      @relation("Wife")
+  media              MediaAsset[]
+  sources            PersonSource[]
+  featured           FeaturedPerson?
+  submissions        Submission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([path])
+  @@index([fatherId])
+  @@index([generation])
+  @@index([nameNormalized])
+  @@index([isLiving, status])
+}
+
+/// Spouse links. Separate from Person because this family has internal marriages
+/// (cousins marrying), which a plain string field would erase.
+model Marriage {
+  id String @id @default(cuid())
+
+  husbandId String?
+  husband   Person? @relation("Husband", fields: [husbandId], references: [id], onDelete: Cascade)
+  wifeId    String?
+  wife      Person? @relation("Wife", fields: [wifeId], references: [id], onDelete: Cascade)
+
+  /// Used when the spouse is not (yet) a Person record — the common case for
+  /// wives named only in passing in the notebook.
+  husbandNameText String?
+  wifeNameText    String?
+
+  /// True when both partners are documented family members.
+  isInternal Boolean @default(false)
+
+  marriageDateText String?
+  placeId          String?
+  place            Place?  @relation(fields: [placeId], references: [id])
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([husbandId])
+  @@index([wifeId])
+}
+
+// ─────────────────────────── Places, sources, media ───────────────────────────
+
+model Place {
+  id   String @id @default(cuid())
+  slug String @unique
+
+  /// { ar: "وادي الشلالة", en: "Wadi al-Shallala" }
+  name           Json
+  country        String?
+  historicalNote Json?
+  latitude       Float?
+  longitude      Float?
+  /// Ordering along the migration route: 1 Hejaz → 2 Egypt → 3 Palestine → 4 Gaza
+  migrationOrder Int?
+
+  birthsHere    Person[]   @relation("BirthPlace")
+  deathsHere    Person[]   @relation("DeathPlace")
+  burialsHere   Person[]   @relation("BurialPlace")
+  residentsHere Person[]   @relation("Residence")
+  marriages     Marriage[]
+  events        TimelineEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Source {
+  id     String  @id @default(cuid())
+  slug   String  @unique
+  title  Json
+  author String?
+  year   String?
+  type   String? // manuscript | book | oral | document
+  url    String?
+  note   Json?
+
+  persons PersonSource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Every fact can cite where it came from — "دفتر سلامة سالم أبو موسى، ص ٤".
+model PersonSource {
+  id       String @id @default(cuid())
+  personId String
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  sourceId String
+  source   Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  page     String?
+  note     String?
+
+  @@unique([personId, sourceId, page])
+  @@index([personId])
+}
+
+model MediaAsset {
+  id           String    @id @default(cuid())
+  kind         MediaKind @default(PHOTO)
+  cloudinaryId String
+  width        Int?
+  height       Int?
+  caption      Json?
+  albumId      String?
+  album        Album?    @relation(fields: [albumId], references: [id], onDelete: SetNull)
+
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  /// Notebook scans are seeded ADMIN and served through signed, short-lived URLs.
+  visibility Visibility @default(MEMBERS)
+  sortOrder  Int        @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([albumId])
+  @@index([personId])
+  @@index([kind, visibility])
+}
+
+model Album {
+  id     String       @id @default(cuid())
+  slug   String       @unique
+  title  Json
+  note   Json?
+  cover  String?
+  media  MediaAsset[]
+  status PublishStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────── Content ───────────────────────────
+
+model Article {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  title      Json
+  excerpt    Json?
+  body       Json // MDX per locale
+  coverImage String?
+  era        String?
+  status     PublishStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id        String  @id @default(cuid())
+  yearStart Int
+  yearEnd   Int?
+  yearText  Json? // "نحو ١٨١٠م"
+  title     Json
+  body      Json?
+  placeId   String?
+  place     Place?  @relation(fields: [placeId], references: [id])
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([yearStart])
+}
+
+model FeaturedPerson {
+  id        String @id @default(cuid())
+  personId  String @unique
+  person    Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  category  String // martyr | scholar | professional | leader
+  highlight Json?
+  sortOrder Int    @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+/// Editable copy blocks, so admins never touch code.
+model SiteContent {
+  key       String   @id
+  value     Json
+  note      String?
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────── People & workflow ───────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  passwordHash  String?
+  role          Role      @default(MEMBER)
+  isApproved    Boolean   @default(false)
+  locale        String    @default("ar")
+
+  accounts    Account[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+  reviewed    Submission[] @relation("ReviewedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/// A visitor's proposed addition. Never touches Person until an admin approves.
+model Submission {
+  id     String           @id @default(cuid())
+  status SubmissionStatus @default(PENDING)
+
+  name        String
+  fatherName  String?
+  motherName  String?
+  birthText   String?
+  residence   String?
+  biography   String?
+  phone       String?
+  email       String?
+  submitterName  String?
+  submitterEmail String?
+  payload     Json? // photos, extra fields
+
+  /// Set once approved and a Person is created.
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  reviewedById String?
+  reviewedBy   User?     @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  reviewNote   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id       String  @id @default(cuid())
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action   String // create | update | delete | approve | reject | login
+  entity   String
+  entityId String?
+  before   Json?
+  after    Json?
+  ip       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

@@ -1,0 +1,63 @@
+{
+  "site": {
+    "name": "Abu Mousa Family",
+    "fullName": "The Abu Mousa Al-Harbi Family",
+    "tagline": "Of Bani Salim, of the Harb tribe",
+    "description": "A documented genealogy of the Abu Mousa Al-Harbi family, from the Hejaz to Egypt to Palestine."
+  },
+  "nav": {
+    "home": "Home",
+    "tree": "Family tree",
+    "history": "History",
+    "places": "Places",
+    "gallery": "Photographs",
+    "featured": "Notable members",
+    "contribute": "Add a name",
+    "login": "Sign in"
+  },
+  "home": {
+    "heroTitle": "The Abu Mousa Al-Harbi Family",
+    "heroSubtitle": "A record preserving the family's lineage and the story of its journey, generation after generation",
+    "exploreTree": "Explore the tree",
+    "readHistory": "Read the story",
+    "statPeople": "documented names",
+    "statGenerations": "generations",
+    "statPlaces": "homelands and burial sites",
+    "statPages": "manuscript pages"
+  },
+  "tree": {
+    "search": "Search for any name in the family…",
+    "noResults": "No results — try a father's or grandfather's name",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "generation": "Generation",
+    "children": "Children",
+    "lineage": "Lineage"
+  },
+  "person": {
+    "born": "Born",
+    "died": "Died",
+    "burial": "Buried",
+    "spouse": "Spouse",
+    "residence": "Residence",
+    "occupation": "Occupation",
+    "biography": "Biography",
+    "source": "Source",
+    "uncertain": "Reading of this name is uncertain",
+    "redacted": "Details of living members are available to registered family",
+    "living": "Living"
+  },
+  "common": {
+    "unknown": "Unknown",
+    "arabicOnly": "Arabic only",
+    "loading": "Loading…",
+    "back": "Back",
+    "close": "Close",
+    "toggleTheme": "Toggle theme",
+    "toggleLanguage": "العربية"
+  },
+  "credits": {
+    "sourceLine": "Primary source: the notebook \"History and Origin of the Abu Mousa Family\" by its author, Salama Salem Abu Mousa",
+    "preparedBy": "Compiled and edited by Osama Waheed Salman Abu Mousa"
+  }
+}

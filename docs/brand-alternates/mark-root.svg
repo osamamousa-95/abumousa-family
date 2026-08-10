@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="عائلة أبو موسى">
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 2 V26" stroke-width="5"/>
+    <path d="M32 26 C 32 34, 20 34, 14 44" stroke-width="3.4"/>
+    <path d="M32 26 V46" stroke-width="3.4"/>
+    <path d="M32 26 C 32 34, 44 34, 50 44" stroke-width="3.4"/>
+    <path d="M14 44 C 11 49, 9 52, 8 58" stroke-width="2.2" opacity=".65"/>
+    <path d="M14 44 C 17 49, 18 52, 19 58" stroke-width="2.2" opacity=".65"/>
+    <path d="M32 46 C 30 51, 29 54, 28 60" stroke-width="2.2" opacity=".65"/>
+    <path d="M32 46 C 34 51, 35 54, 36 60" stroke-width="2.2" opacity=".65"/>
+    <path d="M50 44 C 53 49, 55 52, 56 58" stroke-width="2.2" opacity=".65"/>
+    <path d="M50 44 C 47 49, 46 52, 45 58" stroke-width="2.2" opacity=".65"/>
+  </g>
+</svg>

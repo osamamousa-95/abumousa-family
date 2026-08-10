@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────
+   Design tokens — عائلة أبو موسى
+   Oxblood replaces navy as primary: it is the family's own colour
+   from the existing crest, and more distinctive than institutional blue.
+   ─────────────────────────────────────────────────────────────── */
+
+@theme {
+  --color-ox-50:  #FAF2F0;
+  --color-ox-100: #F2DEDA;
+  --color-ox-300: #C9847A;
+  --color-ox-500: #9B3A31;
+  --color-ox-600: #7B2D26;
+  --color-ox-700: #63241F;
+  --color-ox-900: #3A1512;
+
+  --color-gold-100: #F7F0DF;
+  --color-gold-400: #D4A93F;
+  --color-gold-500: #B8892B;
+  --color-gold-700: #8A6620;
+
+  --color-olive-500: #5E6B47;
+  --color-olive-700: #45502F;
+
+  --color-paper: #F6F2E9;
+  --color-paper-2: #EFE8DA;
+  --color-ink: #1F1A17;
+  --color-ink-2: #3A322C;
+  --color-muted: #6B615A;
+  --color-line: #E3DACB;
+
+  /* Branch identity — carried from the printed register */
+  --color-branch-root: #7B2D26;
+  --color-branch-ati:  #1F6FA8;
+  --color-branch-mhd:  #2E8B57;
+  --color-branch-nabi: #B8792B;
+
+  /* Semantic aliases — primary is oxblood, the family's own colour */
+  --color-primary: var(--color-ox-600);
+  --color-primary-hover: var(--color-ox-700);
+  --color-accent: var(--color-gold-500);
+
+  --font-display: 'Alexandria', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-quran: 'Amiri', Georgia, serif;
+
+  --radius-card: 0.875rem;
+}
+
+/* Dark theme — full token parity, class-based so the toggle is explicit */
+.dark {
+  --color-paper: #17120F;
+  --color-paper-2: #211A16;
+  --color-ink: #F0E8DC;
+  --color-ink-2: #D6CBBC;
+  --color-muted: #9A8D80;
+  --color-line: #362C25;
+  --color-ox-600: #C9847A;
+  --color-gold-500: #D4A93F;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Latin runs inside Arabic text keep their own direction */
+  [lang="en"] { direction: ltr; }
+  :focus-visible {
+    outline: 2px solid var(--color-gold-500);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,45 @@
+# Nightly data escrow — decision §1.4.
+# The point is not operational recovery (Neon PITR covers that). The point is
+# that in twenty years, when this platform and its hosting no longer exist,
+# the family's history still does, in plain text, in Git.
+
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  escrow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+
+      - name: Export JSON + GEDCOM
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          mkdir -p export
+          npx tsx scripts/export-json.ts   > export/family.json
+          npx tsx scripts/export-gedcom.ts > export/family.ged
+
+      - name: Commit to private escrow repository
+        env:
+          TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${TOKEN}@github.com/${{ github.repository_owner }}/abumousa-escrow.git" escrow
+          cp export/family.json export/family.ged escrow/
+          cd escrow
+          git config user.name  "abumousa-backup"
+          git config user.email "backup@abumousa.family"
+          git add -A
+          git diff --staged --quiet || git commit -m "Backup $(date -u +%Y-%m-%d)"
+          git push
