@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Logo } from '@/components/brand/Logo';
 import { Link } from '@/i18n/routing';
 import { formatNumber } from '@/lib/arabic';
+import { SiteHeader } from '@/components/layout/SiteHeader';
 
 export default async function HomePage({
   params,
@@ -22,6 +23,8 @@ export default async function HomePage({
   ];
 
   return (
+    <>
+    <SiteHeader />
     <main className="mx-auto max-w-4xl px-5 pb-24">
       <header className="flex flex-col items-center pt-20 pb-14 text-center">
         <Logo size={72} className="text-[var(--color-primary)]" />
@@ -70,5 +73,6 @@ export default async function HomePage({
         <p className="mt-1">{tc('preparedBy')}</p>
       </footer>
     </main>
+    </>
   );
 }
