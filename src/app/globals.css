@@ -48,7 +48,9 @@
   --radius-card: 0.875rem;
 }
 
-/* Dark theme — full token parity, class-based so the toggle is explicit */
+/* Dark theme — every surface token must flip, not just the text tokens.
+   The gold "paper" tints in particular stayed light in an earlier version and
+   made the lineage box unreadable. */
 .dark {
   --color-paper: #17120F;
   --color-paper-2: #211A16;
@@ -56,8 +58,20 @@
   --color-ink-2: #D6CBBC;
   --color-muted: #9A8D80;
   --color-line: #362C25;
+
+  --color-ox-100: #3A211C;
+  --color-ox-500: #D89A90;
   --color-ox-600: #C9847A;
+  --color-ox-700: #E0A79D;
+
+  --color-gold-100: #33280F;   /* was cream — the contrast bug */
+  --color-gold-400: #E6C25F;
   --color-gold-500: #D4A93F;
+  --color-gold-700: #EBCF7A;
+
+  --color-primary: var(--color-ox-600);
+  --color-primary-hover: var(--color-ox-500);
+  --color-accent: var(--color-gold-500);
 }
 
 @layer base {

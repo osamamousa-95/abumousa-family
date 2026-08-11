@@ -128,6 +128,32 @@ export const ERAS: Era[] = [
       },
     ],
   },
+  {
+    id: 'jordan',
+    order: '٥',
+    years: '١٩٦٧م – اليوم',
+    accent: '#2E8B57',
+    title: { ar: 'الأردن — عمّان وجرش', en: 'Jordan — Amman and Jerash' },
+    place: { ar: 'شرق الأردن', en: 'Transjordan' },
+    lead: {
+      ar: 'من غزة امتدّت فروع العائلة شرقاً إلى الأردن، فاستقرّت في عمّان وجرش حيث تعيش اليوم أجيالٌ وُلدت ونشأت فيها.',
+      en: 'From Gaza the family branches extended east into Jordan, settling in Amman and Jerash, where generations now live who were born and raised there.',
+    },
+    body: [
+      {
+        ar: 'جاءت الموجة الأكبر من الانتقال إلى الأردن بعد حرب ١٩٦٧م وما تلاها من نزوح عن قطاع غزة، فاستقرّت أسر من العائلة في عمّان — العاصمة التي استقبلت موجات اللجوء الفلسطيني المتعاقبة — وفي جرش شمالاً.',
+        en: 'The largest movement into Jordan followed the 1967 war and the displacement from the Gaza Strip that came after it. Families settled in Amman — the capital that received successive waves of Palestinian refuge — and in Jerash to the north.',
+      },
+      {
+        ar: 'وفي الأردن وُلد الجيلان التاسع والعاشر من ذرية زين الدين، وهما أول جيلين في تاريخ العائلة لم يعرفا الترحال: نشأوا في مدنٍ ثابتة، وتعلّموا في مدارسها وجامعاتها، وعملوا في مهنٍ لم تكن معروفة لأجدادهم — الهندسة والطب والتعليم والبرمجة.',
+        en: 'In Jordan the ninth and tenth generations from Zain al-Din were born — the first two generations in the family\'s history to know no displacement. They grew up in settled cities, studied in their schools and universities, and took up professions unknown to their ancestors: engineering, medicine, teaching and software.',
+      },
+      {
+        ar: 'ومن عمّان أُعدّ هذا السجلّ — في المدينة التي صارت، بعد قرنين من الرحيل، موطناً لفرعٍ من العائلة يحفظ ذاكرة الديار التي سبقتها.',
+        en: 'And from Amman this record was compiled — in the city that has become, after two centuries of movement, home to a branch of the family that keeps the memory of the homelands that came before.',
+      },
+    ],
+  },
 ];
 
 // ─────────────────────────── Timeline ───────────────────────────
@@ -221,6 +247,22 @@ export const TIMELINE: TimelineEvent[] = [
       en: 'The tribes of Beersheba were driven from their lands. Branches of the family took refuge in Khan Younis and Abasan al-Saghira, later extending to Jordan and beyond.',
     },
   },
+  {
+    year: '١٩٦٧م', yearNum: 1967, kind: 'migration',
+    title: { ar: 'النزوح إلى الأردن', en: 'Displacement to Jordan' },
+    body: {
+      ar: 'بعد حرب ١٩٦٧م انتقلت أسر من العائلة من غزة إلى الأردن، فاستقرّت في عمّان وجرش، وفيهما وُلد الجيلان التاسع والعاشر.',
+      en: 'After the 1967 war, families moved from Gaza to Jordan, settling in Amman and Jerash, where the ninth and tenth generations were born.',
+    },
+  },
+  {
+    year: '٢٠٢٦م', yearNum: 2026, kind: 'family',
+    title: { ar: 'توثيق السجلّ رقمياً', en: 'The record goes digital' },
+    body: {
+      ar: 'جُمع سجلّ العائلة المكتوب ووُثّق في قاعدة بيانات مفتوحة لأبناء العائلة، فيها ٢٧٠ اسماً في عشرة أجيال، مع سياقها التاريخي وأماكنها ومدافنها.',
+      en: 'The family\'s written record was gathered into an open database for its members — 270 names across ten generations, with their historical context, places and burial sites.',
+    },
+  },
 ];
 
 // ─────────────────────────── Places ───────────────────────────
@@ -308,6 +350,24 @@ export const PLACES: PlaceInfo[] = [
     body: {
       ar: 'مدينة في دلتا مصر فيها مدافن من فرع عبد النبي بن موسى — الفرع الذي بقي في مصر ولم يرحل إلى فلسطين، وما زالت ذريته هناك.',
       en: 'A Delta city holding graves of the line of Abd al-Nabi son of Mousa — the branch that stayed in Egypt rather than moving to Palestine, whose descendants remain there still.',
+    },
+  },
+  {
+    id: 'amman', order: 9, era: 'jordan', lat: 31.9539, lng: 35.9106,
+    name: { ar: 'عمّان', en: 'Amman' },
+    region: { ar: 'الأردن', en: 'Jordan' },
+    body: {
+      ar: 'عاصمة الأردن، ومقام فرعٍ من العائلة منذ النزوح عن غزة. فيها وُلد الجيلان التاسع والعاشر، وهما أول جيلين لم يعرفا الترحال. ومنها أُعدّ هذا السجلّ.',
+      en: 'The Jordanian capital, home to a branch of the family since the displacement from Gaza. Here the ninth and tenth generations were born — the first to know no migration. From here this record was compiled.',
+    },
+  },
+  {
+    id: 'jerash', order: 10, era: 'jordan', lat: 32.2808, lng: 35.8990,
+    name: { ar: 'جرش', en: 'Jerash' },
+    region: { ar: 'شمال الأردن', en: 'Northern Jordan' },
+    body: {
+      ar: 'مدينة في شمال الأردن استقرّت فيها أسر من العائلة، وتُعرف بآثارها الرومانية وبمخيّمها الذي استقبل النازحين من غزة بعد ١٩٦٧م.',
+      en: 'A city in northern Jordan where families of the household settled, known for its Roman ruins and for the camp that received those displaced from Gaza after 1967.',
     },
   },
 ];

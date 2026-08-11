@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { TreeExplorer } from '@/components/tree/TreeExplorer';
+import { RelationFinder } from '@/components/tree/RelationFinder';
 import { getFullTree, flattenTree } from '@/server/services/tree';
 import { formatNumber } from '@/lib/arabic';
 
@@ -38,8 +39,7 @@ export default async function TreePage({
           <div className="mt-6 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-6">
             <p className="font-semibold">قاعدة البيانات فارغة بعد.</p>
             <p className="mt-2 text-sm text-[var(--color-muted)]">
-              شغّل البذرة من GitHub: تبويب Actions ← Seed database ← Run workflow،
-              واكتب SEED للتأكيد. ثم أعد تحميل هذه الصفحة.
+              شغّل البذرة من GitHub: تبويب Actions ← Seed database ← Run workflow، واكتب SEED للتأكيد. ثم أعد تحميل هذه الصفحة.
             </p>
           </div>
         ) : (
@@ -48,6 +48,10 @@ export default async function TreePage({
               {formatNumber(all.length, locale)} — اضغط على أي اسم لعرض نسبه كاملاً
             </p>
             <div className="mt-7">
+              <RelationFinder people={all} locale={locale} />
+            </div>
+
+            <div className="mt-9">
               <TreeExplorer root={root} total={all.length} />
             </div>
           </>

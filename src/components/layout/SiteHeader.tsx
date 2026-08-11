@@ -13,6 +13,7 @@ export async function SiteHeader() {
     { href: '/history', label: t('history') },
     { href: '/places', label: t('places') },
     { href: '/tribe', label: t('tribe') },
+    { href: '/about', label: t('about') },
   ];
 
   return (

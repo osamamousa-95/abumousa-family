@@ -6,6 +6,7 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Reveal } from '@/components/ui/Reveal';
 import { CountUp } from '@/components/ui/CountUp';
 import { ERAS } from '@/content/history';
+import { READER_MESSAGE, SCRIPTURE } from '@/content/scripture';
 
 export default async function HomePage({
   params,
@@ -16,10 +17,10 @@ export default async function HomePage({
   const tn = await getTranslations('nav');
 
   const stats = [
-    { value: 271, label: t('statPeople') },
+    { value: 270, label: t('statPeople') },
     { value: 10, label: t('statGenerations') },
-    { value: 8, label: t('statPlaces') },
-    { value: 4, label: locale === 'ar' ? 'ديار' : 'homelands' },
+    { value: 10, label: t('statPlaces') },
+    { value: 5, label: locale === 'ar' ? 'ديار' : 'homelands' },
   ];
 
   return (
@@ -84,10 +85,18 @@ export default async function HomePage({
           ))}
         </Reveal>
 
+        <Reveal as="section" className="mt-16">
+          <blockquote className="rounded-2xl bg-[var(--color-gold-100)] p-7 text-center">
+            <p className="font-[family-name:var(--font-quran)] text-lg leading-loose sm:text-xl">
+              {locale === 'ar' ? READER_MESSAGE.ar : READER_MESSAGE.en}
+            </p>
+          </blockquote>
+        </Reveal>
+
         <section className="mt-20">
           <Reveal>
             <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-              {locale === 'ar' ? 'أربعة ديار' : 'Four Homelands'}
+              {locale === 'ar' ? 'خمسة ديار' : 'Five Homelands'}
             </h2>
             <p className="mt-2 text-[var(--color-muted)]">
               {locale === 'ar'
@@ -127,14 +136,28 @@ export default async function HomePage({
         </section>
 
         <Reveal as="section" className="mt-20">
+          <article className="rounded-2xl border border-[var(--color-line)] p-7">
+            <p className="font-[family-name:var(--font-quran)] text-xl leading-loose">
+              {SCRIPTURE[3].text}
+            </p>
+            <p className="mt-2 text-xs font-semibold text-[var(--color-gold-700)]">
+              {locale === 'ar' ? SCRIPTURE[3].attribution.ar : SCRIPTURE[3].attribution.en}
+            </p>
+            <p className="mt-3 border-t border-[var(--color-line)] pt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+              {locale === 'ar' ? SCRIPTURE[3].gloss.ar : SCRIPTURE[3].gloss.en}
+            </p>
+          </article>
+        </Reveal>
+
+        <Reveal as="section" className="mt-16">
           <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-8 text-center">
             <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
               {locale === 'ar' ? 'ابحث عن اسمك' : 'Find your name'}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[var(--color-muted)]">
               {locale === 'ar'
-                ? 'الشجرة تضم ٢٧١ اسماً في عشرة أجيال. اكتب اسمك أو اسم جدّك لترى عمود نسبك كاملاً إلى زين الدين الحربي.'
-                : 'The tree holds 271 names across ten generations. Search your name or your grandfather\'s to see your full lineage back to Zain al-Din al-Harbi.'}
+                ? 'الشجرة تضم ٢٧٠ اسماً في عشرة أجيال. اكتب اسمك أو اسم جدّك لترى عمود نسبك كاملاً إلى زين الدين الحربي.'
+                : 'The tree holds 270 names across ten generations. Search your name or your grandfather\'s to see your full lineage back to Zain al-Din al-Harbi.'}
             </p>
             <Link
               href="/tree"
