@@ -8,6 +8,8 @@ import { Link } from '@/i18n/routing';
 import { prisma } from '@/server/db/prisma';
 import { getLineageChain } from '@/server/services/tree';
 import { formatNumber } from '@/lib/arabic';
+import { CreatorCard } from '@/components/person/CreatorCard';
+import { CREATOR_SLUG } from '@/content/creator';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -148,7 +150,17 @@ export default async function PersonPage({
           <Reveal delay={160}>
             <section className="mt-9">
               <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">{t('biography')}</h2>
-              <p className="mt-3 leading-loose text-[var(--color-ink-2)]">{p.biography}</p>
+              <p className="mt-3 whitespace-pre-line leading-loose text-[var(--color-ink-2)]">{p.biography}</p>
+            </section>
+          </Reveal>
+        )}
+
+        {/* الحقول الإضافية التي لا مقابل لها في نموذج البيانات العام —
+            تظهر فقط على صفحة المعدّ نفسه، وليست ميزة عامة لكل فرد. */}
+        {p.slug === CREATOR_SLUG && (
+          <Reveal delay={170}>
+            <section className="mt-9">
+              <CreatorCard locale={locale} variant="compact" />
             </section>
           </Reveal>
         )}

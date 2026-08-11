@@ -28,6 +28,8 @@ interface RawNode {
   b?: string;     // burial place as written
   s?: string;     // spouse, free text
   d?: string;     // note
+  bd?: string;    // birth date, as written (e.g. "٩ ديسمبر ١٩٩٥م")
+  bio?: string;   // full biography — self-supplied by a living member
   c?: RawNode[];  // children, eldest first
 }
 
@@ -163,6 +165,9 @@ async function main() {
       : parseFuzzyDate(null);
 
     const burialSlug = p.raw.b ? BURIAL_TO_PLACE[p.raw.b] : undefined;
+    const birthDate = p.raw.bd
+      ? { birthDateText: p.raw.bd, birthDatePrecision: 'EXACT' as const }
+      : {};
 
     const person = await prisma.person.upsert({
       where: { slug: p.slug },
@@ -178,7 +183,9 @@ async function main() {
         burialPlaceRaw: p.raw.b ?? null,
         burialPlaceId: burialSlug ? placeIds.get(burialSlug) : null,
         notes: p.raw.d ?? null,
+        biography: p.raw.bio ?? null,
         isLiving: !hasDeathEvidence && p.generation >= 8,
+        ...birthDate,
       },
       create: {
         slug: p.slug,
@@ -193,9 +200,11 @@ async function main() {
         burialPlaceRaw: p.raw.b ?? null,
         burialPlaceId: burialSlug ? placeIds.get(burialSlug) : null,
         notes: p.raw.d ?? null,
+        biography: p.raw.bio ?? null,
         // Generations 1–7 are the notebook's historical record; 8+ are living kin.
         isLiving: !hasDeathEvidence && p.generation >= 8,
         publicVisibility: Visibility.PUBLIC,
+        ...birthDate,
       },
     });
     idByCode.set(p.code, person.id);
