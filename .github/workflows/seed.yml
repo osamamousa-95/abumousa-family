@@ -1,13 +1,10 @@
-# تشغيل البذرة من المتصفح: Actions ← Seed database ← Run workflow
-# مصمَّم لمن يعمل من جهاز لوحي ولا يملك بيئة تطوير محلية.
-
 name: Seed database
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'اكتب SEED للتأكيد'
+        description: 'Type SEED to confirm'
         required: true
         default: ''
 
@@ -15,6 +12,9 @@ jobs:
   seed:
     if: ${{ github.event.inputs.confirm == 'SEED' }}
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,13 +23,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - name: Apply migrations
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-        run: npx prisma migrate deploy
-      - name: Import the 271 notebook records
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-        run: npx tsx prisma/seed.ts
+      - run: npx prisma db push
+      - run: npx tsx prisma/seed.ts
