@@ -60,6 +60,12 @@ export default async function LocaleLayout({
           rel="stylesheet"
         />
       </head>
+      <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':matchMedia('(prefers-color-scheme:dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
+          }}
+        />
       <body>
         <NextIntlClientProvider messages={messages}>
           {children}

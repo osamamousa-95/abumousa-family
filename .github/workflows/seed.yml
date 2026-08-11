@@ -1,10 +1,11 @@
+# تشغيل البذرة من المتصفح: Actions ← Seed database ← Run workflow
 name: Seed database
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type SEED to confirm'
+        description: 'اكتب SEED للتأكيد'
         required: true
         default: ''
 
@@ -12,6 +13,7 @@ jobs:
   seed:
     if: ${{ github.event.inputs.confirm == 'SEED' }}
     runs-on: ubuntu-latest
+    # على مستوى المهمة كلها — فتصل إلى كل خطوة بما فيها prisma generate
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DIRECT_URL: ${{ secrets.DIRECT_URL }}
@@ -23,5 +25,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - run: npx prisma db push
-      - run: npx tsx prisma/seed.ts
+      - name: Apply migrations
+        run: npx prisma db push --accept-data-loss
+      - name: Import the 271 notebook records
+        run: npx tsx prisma/seed.ts

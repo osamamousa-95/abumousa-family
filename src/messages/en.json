@@ -13,7 +13,8 @@
     "gallery": "Photographs",
     "featured": "Notable members",
     "contribute": "Add a name",
-    "login": "Sign in"
+    "login": "Sign in",
+    "tribe": "Tribe"
   },
   "home": {
     "heroTitle": "The Abu Mousa Al-Harbi Family",
@@ -59,5 +60,30 @@
   "credits": {
     "sourceLine": "Primary source: the notebook \"History and Origin of the Abu Mousa Family\" by its author, Salama Salem Abu Mousa",
     "preparedBy": "Compiled and edited by Osama Waheed Salman Abu Mousa"
-  }
+  },
+  "footer": {
+    "family": "The Abu Mousa Al-Harbi Family",
+    "verse": "“And We made you peoples and tribes that you may know one another”",
+    "recordLabel": "The family's written record",
+    "researchLabel": "Research, expansion and digital edition",
+    "sources": "Historical context draws on: Aref al-Aref, History of Beersheba and its Tribes · al-Hamdani, al-Iklil · al-Qalqashandi, Nihayat al-Arab · al-Barakati, The Yemeni Journey · Atiq al-Biladi, The Lineage of Harb · Fayez al-Badrani, Chapters from the History of Harb · al-Jabarti, Aja'ib al-Athar.",
+    "rights": "A family record — 1448 AH / 2026 CE"
+  },
+  "places": {
+    "title": "Places of the Family",
+    "subtitle": "Eight stops on a journey of two centuries, from the Hejaz to the diaspora",
+    "burial": "Documented burial site",
+    "mapHint": "Tap any stop on the map to read about it"
+  },
+  "tribe": {
+    "title": "The Harb Tribe",
+    "subtitle": "The family's tribal origin, and its relatives spread across countries today",
+    "originsTitle": "Three accounts of Harb's descent",
+    "clansTitle": "Clans of Bani Salim",
+    "clansNote": "Bani Salim comprises two branches from which these clans descend. The specific clan of this family is not yet confirmed; these lists stand as a reference for research.",
+    "relatedTitle": "Harb families in other countries",
+    "relatedNote": "No confirmed link exists between us and these beyond shared tribal origin and similar routes of migration."
+  },
+  "timelineTitle": "Timeline",
+  "erasTitle": "Four Homelands"
 }

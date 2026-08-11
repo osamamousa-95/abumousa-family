@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { TreeExplorer } from '@/components/tree/TreeExplorer';
 import { getFullTree, flattenTree } from '@/server/services/tree';
 import { formatNumber } from '@/lib/arabic';
@@ -21,7 +22,6 @@ export default async function TreePage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('nav');
-  const tc = await getTranslations('credits');
 
   const root = await getFullTree({ kind: 'public' });
   const all = flattenTree(root);
@@ -53,10 +53,8 @@ export default async function TreePage({
           </>
         )}
 
-        <footer className="mt-14 border-t border-[var(--color-line)] pt-6 text-center text-xs text-[var(--color-muted)]">
-          {tc('sourceLine')}
-        </footer>
       </main>
+      <SiteFooter />
     </>
   );
 }

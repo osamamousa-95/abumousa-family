@@ -10,7 +10,8 @@
 import { PrismaClient, Gender, Confidence, Visibility, MediaKind } from '@prisma/client';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { normalizeArabic, slugify } from '../src/lib/arabic';
+import { normalizeArabic } from '../src/lib/arabic';
+import { personSlug, transliterate } from '../src/lib/transliterate';
 import { parseFuzzyDate, computeIsLiving } from '../src/lib/fuzzy-date';
 
 const prisma = new PrismaClient();
@@ -95,10 +96,10 @@ function flatten(root: RawNode): FlatPerson[] {
   const seenSlugs = new Map<string, number>();
 
   const walk = (node: RawNode, code: string, generation: number, fatherCode: string | null, sortOrder: number) => {
-    let base = slugify(node.n) || 'person';
-    const n = (seenSlugs.get(base) ?? 0) + 1;
-    seenSlugs.set(base, n);
-    const slug = n === 1 ? base : `${base}-${n}`;
+    // ASCII slug keyed by tree position — readable when shared, and unique
+    // even when a dozen cousins share the same name.
+    const slug = personSlug(node.n, code);
+    seenSlugs.set(slug, (seenSlugs.get(slug) ?? 0) + 1);
 
     out.push({ raw: node, code, generation, fatherCode, sortOrder, slug });
     (node.c ?? []).forEach((kid, i) =>
@@ -167,6 +168,7 @@ async function main() {
       where: { slug: p.slug },
       update: {
         name: p.raw.n,
+        nameLatin: transliterate(p.raw.n) || null,
         nameNormalized: normalizeArabic(p.raw.n),
         gender: p.raw.f ? Gender.FEMALE : Gender.MALE,
         nameConfidence: p.raw.u ? Confidence.UNCERTAIN : Confidence.CONFIRMED,
@@ -181,6 +183,7 @@ async function main() {
       create: {
         slug: p.slug,
         name: p.raw.n,
+        nameLatin: transliterate(p.raw.n) || null,
         nameNormalized: normalizeArabic(p.raw.n),
         gender: p.raw.f ? Gender.FEMALE : Gender.MALE,
         nameConfidence: p.raw.u ? Confidence.UNCERTAIN : Confidence.CONFIRMED,

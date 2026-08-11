@@ -1,78 +1,152 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Logo } from '@/components/brand/Logo';
 import { Link } from '@/i18n/routing';
-import { formatNumber } from '@/lib/arabic';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
+import { Reveal } from '@/components/ui/Reveal';
+import { CountUp } from '@/components/ui/CountUp';
+import { ERAS } from '@/content/history';
 
 export default async function HomePage({
   params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+}: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('home');
   const tn = await getTranslations('nav');
-  const tc = await getTranslations('credits');
 
   const stats = [
     { value: 271, label: t('statPeople') },
     { value: 10, label: t('statGenerations') },
     { value: 8, label: t('statPlaces') },
-    { value: 70, label: t('statPages') },
+    { value: 4, label: locale === 'ar' ? 'ديار' : 'homelands' },
   ];
 
   return (
     <>
-    <SiteHeader />
-    <main className="mx-auto max-w-4xl px-5 pb-24">
-      <header className="flex flex-col items-center pt-20 pb-14 text-center">
-        <Logo size={72} className="text-[var(--color-primary)]" />
-        <h1 className="mt-7 font-[family-name:var(--font-display)] text-4xl font-extrabold leading-tight sm:text-5xl">
-          {t('heroTitle')}
-        </h1>
-        <p className="mt-4 max-w-xl text-[var(--color-muted)]">
-          {t('heroSubtitle')}
-        </p>
+      <SiteHeader />
 
-        <nav className="mt-9 flex flex-wrap justify-center gap-3">
-          <Link
-            href="/tree"
-            className="rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)]"
-          >
-            {t('exploreTree')}
-          </Link>
-          <Link
-            href="/history"
-            className="rounded-full border border-[var(--color-line)] px-6 py-2.5 text-sm font-semibold transition hover:border-[var(--color-primary)]"
-          >
-            {t('readHistory')}
-          </Link>
-        </nav>
-      </header>
-
-      <section
-        aria-label={tn('home')}
-        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-      >
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] px-4 py-5 text-center"
-          >
-            <div className="font-[family-name:var(--font-display)] text-2xl font-extrabold text-[var(--color-primary)]">
-              {formatNumber(s.value, locale)}
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -top-32 h-80 opacity-[0.07]"
+          style={{
+            background:
+              'radial-gradient(60% 60% at 50% 50%, var(--color-primary) 0%, transparent 70%)',
+          }}
+        />
+        <div className="mx-auto max-w-3xl px-5 pb-16 pt-20 text-center">
+          <Reveal>
+            <Logo size={78} className="mx-auto text-[var(--color-primary)]" />
+          </Reveal>
+          <Reveal delay={100}>
+            <h1 className="mt-8 font-[family-name:var(--font-display)] text-4xl font-extrabold leading-tight sm:text-5xl">
+              {t('heroTitle')}
+            </h1>
+          </Reveal>
+          <Reveal delay={180}>
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-[var(--color-muted)]">
+              {t('heroSubtitle')}
+            </p>
+          </Reveal>
+          <Reveal delay={260}>
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/tree"
+                className="rounded-full bg-[var(--color-primary)] px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-[var(--color-primary)]/20 transition hover:bg-[var(--color-primary-hover)]"
+              >
+                {t('exploreTree')}
+              </Link>
+              <Link
+                href="/history"
+                className="rounded-full border border-[var(--color-line)] px-7 py-3 text-sm font-semibold transition hover:border-[var(--color-primary)]"
+              >
+                {t('readHistory')}
+              </Link>
             </div>
-            <div className="mt-1 text-xs text-[var(--color-muted)]">{s.label}</div>
-          </div>
-        ))}
+          </Reveal>
+        </div>
       </section>
 
-      <footer className="mt-20 border-t border-[var(--color-line)] pt-8 text-center text-sm text-[var(--color-muted)]">
-        <p>{tc('sourceLine')}</p>
-        <p className="mt-1">{tc('preparedBy')}</p>
-      </footer>
-    </main>
+      <main className="mx-auto max-w-4xl px-5">
+        <Reveal as="section" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] px-4 py-6 text-center"
+              style={{ transitionDelay: `${i * 60}ms` }}
+            >
+              <div className="font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-primary)]">
+                <CountUp value={s.value} locale={locale} />
+              </div>
+              <div className="mt-1 text-xs text-[var(--color-muted)]">{s.label}</div>
+            </div>
+          ))}
+        </Reveal>
+
+        <section className="mt-20">
+          <Reveal>
+            <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+              {locale === 'ar' ? 'أربعة ديار' : 'Four Homelands'}
+            </h2>
+            <p className="mt-2 text-[var(--color-muted)]">
+              {locale === 'ar'
+                ? 'رحلة امتدت قرنين، من بادية الحجاز إلى الشتات.'
+                : 'A journey of two centuries, from the Hejaz steppe to the diaspora.'}
+            </p>
+          </Reveal>
+
+          <div className="mt-8 space-y-4">
+            {ERAS.map((era, i) => (
+              <Reveal as="article" key={era.id} delay={i * 80}>
+                <Link
+                  href="/history"
+                  className="group flex gap-4 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5 transition hover:border-[var(--color-primary)]"
+                >
+                  <span
+                    className="flex h-11 w-11 flex-none items-center justify-center rounded-xl font-[family-name:var(--font-display)] text-base font-extrabold text-white"
+                    style={{ background: era.accent }}
+                  >
+                    {era.order}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-[family-name:var(--font-display)] text-base font-bold group-hover:text-[var(--color-primary)]">
+                      {locale === 'ar' ? era.title.ar : era.title.en}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--color-muted)]">
+                      {era.years} · {locale === 'ar' ? era.place.ar : era.place.en}
+                    </span>
+                    <span className="mt-2 block text-sm leading-relaxed text-[var(--color-ink-2)]">
+                      {locale === 'ar' ? era.lead.ar : era.lead.en}
+                    </span>
+                  </span>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <Reveal as="section" className="mt-20">
+          <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-8 text-center">
+            <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
+              {locale === 'ar' ? 'ابحث عن اسمك' : 'Find your name'}
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[var(--color-muted)]">
+              {locale === 'ar'
+                ? 'الشجرة تضم ٢٧١ اسماً في عشرة أجيال. اكتب اسمك أو اسم جدّك لترى عمود نسبك كاملاً إلى زين الدين الحربي.'
+                : 'The tree holds 271 names across ten generations. Search your name or your grandfather\'s to see your full lineage back to Zain al-Din al-Harbi.'}
+            </p>
+            <Link
+              href="/tree"
+              className="mt-6 inline-block rounded-full bg-[var(--color-primary)] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)]"
+            >
+              {tn('tree')}
+            </Link>
+          </div>
+        </Reveal>
+      </main>
+
+      <SiteFooter />
     </>
   );
 }

@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
+import { Reveal } from '@/components/ui/Reveal';
+import { Timeline } from '@/components/history/Timeline';
+import { Link } from '@/i18n/routing';
+import { ERAS } from '@/content/history';
 
 export const revalidate = 86400;
 
@@ -12,92 +17,104 @@ export async function generateMetadata({
   return { title: t('history') };
 }
 
-const ERAS = [
-  {
-    n: '١',
-    title: 'الحجاز — ديار بني سالم',
-    body: 'نشأت الأسرة في ديار قبيلة حرب الممتدة بين مكة والمدينة وينبع، من فرعها الكبير بني سالم — وهو المقصود بعبارة الدفتر «من عيال سالم». وفي مطلع القرن التاسع عشر عمّ القحط بلاد الحجاز حين انقطعت قوافل الميرة القادمة من مصر بسبب الحروب، وسجّل المؤرخ الجبرتي أن كثيراً من أهل المدينة ماتوا جوعاً. فخرج الناس مهاجرين إلى البلاد التي كان يأتيهم منها الطعام: مصر.',
-    quote: 'عمّ القحط في بلاد الحجاز وعمّت المجاعات… ومن ضمن هؤلاء الناس هاجر زين الدين الحربي من قبيلة حرب من عيال سالم، هو وزوجته وولده الصغير موسى',
-    cite: 'الدفتر، ص ١',
-  },
-  {
-    n: '٢',
-    title: 'مصر — كفر شبين، القليوبية',
-    body: 'نزل زين الدين بأسرته قرية كفر شبين قرب شبين القناطر، وتوفي بعد نحو سنتين، وتوفيت زوجته بعده بست سنوات ودُفنت بجواره. ثم تزوّج موسى فتاة من قبائل عربية قدمت مع والدها من الجزيرة، فأنجب ستة أولاد وبنتاً — ومنهم امتدت العائلة كلها.',
-    quote: null,
-    cite: null,
-  },
-  {
-    n: '٣',
-    title: 'فلسطين — وادي الشلالة وبئر السبع',
-    body: 'انتقلت الأسرة إلى شمال النقب واستقرت على الضفة الشرقية لوادي الشلالة في أرض زراعية خصبة. ويروي الدفتر حربين: أولى استمرت أربع سنوات هُزم فيها التياها — وكان أشهر مقاتلي أولاد موسى أكبرهم عبد العاطي — ثم حرب مع العزازمة قُتل فيها حسين وإسماعيل وعبد الرحمن أبناء موسى، ودُفنوا في قوز العز عند مقام الشيخ نوران. ثم توفي موسى ودُفن في الخلصة جنوب بئر السبع.',
-    quote: 'ويُسمى بقوز العز لأنهم انتصروا فيه على أعدائهم واعتزوا بهذا الانتصار، ويُسمى بالقوز لأنه مرتفع عن الأراضي التي تحيط به',
-    cite: 'الدفتر، ص ٣',
-  },
-  {
-    n: '٤',
-    title: 'خان يونس والشتات — وفرعٌ بقي في مصر',
-    body: 'بعد نكبة ١٩٤٨ لجأت فروع بئر السبع إلى خان يونس وعبسان الصغيرة، ومنهما امتدت إلى الأردن وغيرها. أما فرع عبد النبي بن موسى فبقيت ذريته في مصر: مدافنهم في كفر شبين وشبين الكوم، وهم أقارب العائلة الباقون هناك إلى اليوم.',
-    quote: null,
-    cite: null,
-  },
-];
-
 export default async function HistoryPage({
   params,
 }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('nav');
-  const tc = await getTranslations('credits');
+  const ar = locale === 'ar';
 
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-5 py-10">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold">
-          {t('history')}
-        </h1>
-        <p className="mt-3 text-[var(--color-muted)]">
-          رحلة العائلة في أربعة ديار، كما رواها دفتر الجدّ سلامة سالم أبو موسى.
-        </p>
+      <main className="mx-auto max-w-3xl px-5 py-12">
+        <Reveal>
+          <h1 className="font-[family-name:var(--font-display)] text-4xl font-extrabold">
+            {t('history')}
+          </h1>
+          <p className="mt-3 text-lg text-[var(--color-muted)]">
+            {ar
+              ? 'رحلة عائلة من بادية الحجاز إلى شمال النقب ثم الشتات — قرنان من الترحال والبقاء.'
+              : 'The journey of a family from the Hejaz steppe to the northern Negev and then the diaspora — two centuries of movement and endurance.'}
+          </p>
+        </Reveal>
 
-        <div className="mt-10 space-y-5">
-          {ERAS.map((e) => (
-            <article
-              key={e.n}
-              className="rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-6"
-            >
-              <h2 className="flex items-center gap-3 font-[family-name:var(--font-display)] text-lg font-bold">
-                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[var(--color-primary)] text-sm text-white">
-                  {e.n}
+        <div className="mt-14 space-y-16">
+          {ERAS.map((era) => (
+            <Reveal as="article" key={era.id}>
+              <header className="flex items-center gap-4">
+                <span
+                  className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl font-[family-name:var(--font-display)] text-lg font-extrabold text-white"
+                  style={{ background: era.accent }}
+                >
+                  {era.order}
                 </span>
-                {e.title}
-              </h2>
-              <p className="mt-3 leading-relaxed">{e.body}</p>
-              {e.quote && (
-                <blockquote className="mt-4 rounded-lg border-s-4 border-[var(--color-gold-500)] bg-[var(--color-gold-100)] p-4 font-[family-name:var(--font-quran)] text-lg leading-loose">
-                  «{e.quote}»
-                  <footer className="mt-1 font-[family-name:var(--font-body)] text-xs text-[var(--color-muted)]">
-                    — {e.cite}
-                  </footer>
+                <div>
+                  <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+                    {ar ? era.title.ar : era.title.en}
+                  </h2>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    {era.years} · {ar ? era.place.ar : era.place.en}
+                  </p>
+                </div>
+              </header>
+
+              <p className="mt-6 border-s-4 ps-4 text-lg leading-relaxed"
+                 style={{ borderColor: era.accent }}>
+                {ar ? era.lead.ar : era.lead.en}
+              </p>
+
+              <div className="mt-5 space-y-4">
+                {era.body.map((p, i) => (
+                  <p key={i} className="leading-loose text-[var(--color-ink-2)]">
+                    {ar ? p.ar : p.en}
+                  </p>
+                ))}
+              </div>
+
+              {era.quote && (
+                <blockquote className="mt-6 rounded-xl bg-[var(--color-gold-100)] p-5 font-[family-name:var(--font-quran)] text-lg leading-loose">
+                  «{ar ? era.quote.ar : era.quote.en}»
                 </blockquote>
               )}
-            </article>
+            </Reveal>
           ))}
         </div>
 
-        <section className="mt-10 rounded-xl border border-[var(--color-line)] border-s-4 border-s-[var(--color-primary)] p-5 text-sm leading-relaxed">
-          <b>ملاحظة في التواريخ:</b> كُتب في الدفتر سنة ١٦١٠، لكن حساب الأجيال
-          الخمسة بين زين الدين وجيل مواليد ١٩٣٠ يرجّح أن الصواب ١٨١٠ — سهو قلمٍ
-          في خانة المئات عند النسخ. ويؤيده أن مجاعة الحجاز الكبرى وقعت فعلاً في
-          تلك السنوات، وأن حروب النقب القبلية من وقائع القرن التاسع عشر.
-        </section>
+        <Reveal as="section" className="mt-20">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+            {ar ? 'الخط الزمني' : 'Timeline'}
+          </h2>
+          <p className="mt-2 mb-8 text-[var(--color-muted)]">
+            {ar
+              ? 'أحداث القبيلة والعائلة مرتّبة، من نزول حرب الحجاز إلى النكبة.'
+              : 'Events of tribe and family in order, from Harb\'s arrival in the Hejaz to the Nakba.'}
+          </p>
+          <Timeline locale={locale} />
+        </Reveal>
 
-        <footer className="mt-12 border-t border-[var(--color-line)] pt-6 text-center text-xs text-[var(--color-muted)]">
-          {tc('sourceLine')}
-        </footer>
+        <Reveal as="section" className="mt-16 rounded-2xl border border-[var(--color-line)] border-s-4 border-s-[var(--color-primary)] p-6">
+          <h3 className="font-[family-name:var(--font-display)] font-bold">
+            {ar ? 'ملاحظة في التأريخ' : 'A note on dating'}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">
+            {ar
+              ? 'يرد في السجل الأصلي تاريخ ١٦١٠م لهجرة زين الدين، غير أن حساب الأجيال الخمسة الفاصلة بينه وبين جيل مواليد ١٩٣٠ يجعل ذلك مستحيلاً — إذ يقتضي متوسط جيل يقارب مئة عام. والأرجح أن الصواب ١٨١٠م، بسهو قلمٍ في خانة المئات عند النسخ. ويسند هذا الترجيح أن مجاعة الحجاز الكبرى وقعت فعلاً في تلك السنوات، وأن حروب النقب القبلية من وقائع القرن التاسع عشر، وأن مدافن الأجيال الأخيرة في خان يونس وعبسان لا تكون إلا بعد ١٩٤٨.'
+              : 'The original record gives 1610 CE for Zain al-Din\'s migration, but the five generations separating him from those born around 1930 make that impossible — it would require an average generation of nearly a century. The likely correct date is 1810, a slip of the pen in the hundreds column. Supporting this: the great Hejaz famine fell in those years, the Negev tribal wars belong to the nineteenth century, and the burials of the latest generations in Khan Younis and Abasan can only postdate 1948.'}
+          </p>
+        </Reveal>
+
+        <Reveal className="mt-12 flex flex-wrap gap-3">
+          <Link href="/places" className="rounded-full border border-[var(--color-line)] px-6 py-2.5 text-sm font-semibold transition hover:border-[var(--color-primary)]">
+            {t('places')} →
+          </Link>
+          <Link href="/tribe" className="rounded-full border border-[var(--color-line)] px-6 py-2.5 text-sm font-semibold transition hover:border-[var(--color-primary)]">
+            {t('tribe')} →
+          </Link>
+        </Reveal>
       </main>
+      <SiteFooter />
     </>
   );
 }
