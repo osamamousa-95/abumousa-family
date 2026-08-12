@@ -6,7 +6,7 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Reveal } from '@/components/ui/Reveal';
 import { CountUp } from '@/components/ui/CountUp';
 import { ERAS } from '@/content/history';
-import { READER_MESSAGE, SCRIPTURE } from '@/content/scripture';
+import { READER_MESSAGE } from '@/content/scripture';
 
 export default async function HomePage({
   params,
@@ -136,20 +136,6 @@ export default async function HomePage({
         </section>
 
         <Reveal as="section" className="mt-20">
-          <article className="rounded-2xl border border-[var(--color-line)] p-7">
-            <p className="font-[family-name:var(--font-quran)] text-xl leading-loose">
-              {SCRIPTURE[3].text}
-            </p>
-            <p className="mt-2 text-xs font-semibold text-[var(--color-gold-700)]">
-              {locale === 'ar' ? SCRIPTURE[3].attribution.ar : SCRIPTURE[3].attribution.en}
-            </p>
-            <p className="mt-3 border-t border-[var(--color-line)] pt-3 text-sm leading-relaxed text-[var(--color-muted)]">
-              {locale === 'ar' ? SCRIPTURE[3].gloss.ar : SCRIPTURE[3].gloss.en}
-            </p>
-          </article>
-        </Reveal>
-
-        <Reveal as="section" className="mt-16">
           <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-8 text-center">
             <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold">
               {locale === 'ar' ? 'ابحث عن اسمك' : 'Find your name'}

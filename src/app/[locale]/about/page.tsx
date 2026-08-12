@@ -5,7 +5,7 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Reveal } from '@/components/ui/Reveal';
 import { CreatorCard } from '@/components/person/CreatorCard';
 import { Link } from '@/i18n/routing';
-import { SCRIPTURE, READER_MESSAGE } from '@/content/scripture';
+import { READER_MESSAGE } from '@/content/scripture';
 import { CREATOR_SLUG } from '@/content/creator';
 
 export const revalidate = 86400;
@@ -70,36 +70,6 @@ export default async function AboutPage({
         </Reveal>
 
         <Reveal delay={160}>
-          <section className="mt-14">
-            <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
-              {ar ? 'في فضل صلة الرحم' : 'On the ties of kinship'}
-            </h2>
-            <p className="mt-2 text-sm text-[var(--color-muted)]">
-              {ar
-                ? 'ليست معرفة النسب غايةً في ذاتها، بل وسيلةٌ إلى ما هو أعظم منها.'
-                : 'Knowing lineage is not an end in itself, but a means to something greater.'}
-            </p>
-            <div className="mt-6 space-y-4">
-              {SCRIPTURE.map((sc, i) => (
-                <Reveal key={sc.id} delay={i * 60}>
-                  <article className="rounded-2xl border border-[var(--color-line)] p-5">
-                    <p className="font-[family-name:var(--font-quran)] text-xl leading-loose">
-                      {sc.text}
-                    </p>
-                    <p className="mt-2 text-xs font-semibold text-[var(--color-gold-700)]">
-                      {ar ? sc.attribution.ar : sc.attribution.en}
-                    </p>
-                    <p className="mt-3 border-t border-[var(--color-line)] pt-3 text-sm leading-relaxed text-[var(--color-ink-2)]">
-                      {ar ? sc.gloss.ar : sc.gloss.en}
-                    </p>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-        </Reveal>
-
-        <Reveal delay={200}>
           <blockquote className="mt-14 rounded-2xl bg-[var(--color-gold-100)] p-7 text-center">
             <p className="font-[family-name:var(--font-quran)] text-xl leading-loose text-[var(--color-ink)]">
               {ar ? READER_MESSAGE.ar : READER_MESSAGE.en}

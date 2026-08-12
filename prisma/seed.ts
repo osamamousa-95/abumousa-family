@@ -267,7 +267,20 @@ async function main() {
   }
   console.log(`  marriages   ${marriages}  (internal: ${internalPairs.size})`);
 
-  // 5. Site content the admins can edit without touching code
+  // 5. Prune — remove any Person row whose slug is no longer produced by
+  // the current source data. Every prior pass only ever creates or updates;
+  // without this, a name deleted from data/tree.json (or a slug scheme
+  // change, as happened when slugs moved from Arabic to Latin) leaves a
+  // stale orphaned row in the database forever.
+  const currentSlugs = new Set(flat.map((p) => p.slug));
+  const existing = await prisma.person.findMany({ select: { id: true, slug: true, name: true } });
+  const stale = existing.filter((row) => !currentSlugs.has(row.slug));
+  for (const row of stale) {
+    await prisma.person.delete({ where: { id: row.id } });
+  }
+  console.log(`  pruned      ${stale.length}${stale.length ? '  (' + stale.map((s) => s.name).slice(0, 5).join('، ') + (stale.length > 5 ? '…' : '') + ')' : ''}`);
+
+  // 6. Site content the admins can edit without touching code
   const content: { key: string; value: unknown; note: string }[] = [
     { key: 'home.mission', note: 'Homepage mission statement',
       value: { ar: 'نحفظ نسب العائلة وتاريخ رحلتها لتبقى وصلاً بين الأجيال.',
@@ -285,7 +298,7 @@ async function main() {
   }
   console.log(`  content     ${content.length}`);
 
-  // 6. Notebook scans placeholder album — ADMIN-only per decision §1.6
+  // 7. Notebook scans placeholder album — ADMIN-only per decision §1.6
   await prisma.album.upsert({
     where: { slug: 'notebook-scans' },
     update: {},
