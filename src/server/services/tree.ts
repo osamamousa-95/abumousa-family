@@ -17,6 +17,9 @@ export interface TreeNodeDTO {
   notebookPage: string | null;
   burialPlace: string | null;
   spouseName: string | null;
+  /** "أسامة بن وحيد بن سلمان بن عبد الرحمن" — built server-side so search and
+      the picker can disambiguate the many people who share a first name. */
+  lineage: string;
   children: TreeNodeDTO[];
 }
 
@@ -87,8 +90,26 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       notebookPage: redacted ? null : r.sources[0]?.page ?? null,
       burialPlace: redacted ? null : r.burialPlaceRaw,
       spouseName: redacted ? null : spouse,
+      lineage: '',
       children: [],
     });
+  }
+
+  // Build a four-part name for every node once the map is complete.
+  const nameById = new Map([...byId.values()].map((n) => [n.id, n.name]));
+  const fatherById = new Map([...byId.values()].map((n) => [n.id, n.fatherId]));
+  for (const node of byId.values()) {
+    const parts = [node.name];
+    let cur = node.fatherId;
+    let steps = 0;
+    while (cur && steps < 3) {
+      const nm = nameById.get(cur);
+      if (!nm) break;
+      parts.push(nm);
+      cur = fatherById.get(cur) ?? null;
+      steps++;
+    }
+    node.lineage = parts.join(' بن ');
   }
 
   let root: TreeNodeDTO | null = null;

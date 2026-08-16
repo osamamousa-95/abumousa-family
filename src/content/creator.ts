@@ -29,8 +29,8 @@ export const CREATOR = {
     { ar: 'التكنولوجيا', en: 'Technology' },
   ],
   vision: {
-    ar: 'أن يكبر هذا السجلّ بمشاركة كل فرد من العائلة، حتى يصبح مرجعاً حيّاً يُورَّث كما يُورَّث الاسم والأرض — لا عملاً يقف عند مئتين وسبعين اسماً، بل بداية.',
-    en: 'That this record grows through the participation of every member of the family, until it becomes a living reference passed down like a name or a piece of land — not a project that stops at two hundred and seventy names, but a beginning.',
+    ar: 'أن يكبر هذا السجلّ بمشاركة كل فرد من العائلة، حتى يصبح مرجعاً حيّاً يُورَّث كما يُورَّث الاسم والأرض — لا عملاً يقف عند عددٍ من الأسماء، بل بداية.',
+    en: 'That this record grows through the participation of every member of the family, until it becomes a living reference passed down like a name or a piece of land — not a project that stops at a fixed number of names, but a beginning.',
   },
   message: {
     ar: 'إن وجدت اسماً ناقصاً، أو خطأً، أو خبراً عن أحد أفراد العائلة — فراسلني. هذا السجلّ لكم جميعاً، لا لي وحدي، ولن يكتمل إلا بكم.',

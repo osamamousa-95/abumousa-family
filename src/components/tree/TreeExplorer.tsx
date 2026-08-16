@@ -34,10 +34,19 @@ export function TreeExplorer({ root, total }: Props) {
     return out;
   }, [root]);
 
+  // Matches the person's own name, their father's or their grandfather's —
+  // the three ways someone actually asks for a relative.
   const results = useMemo(() => {
     const q = normalizeArabic(query.trim());
     if (q.length < 2) return [];
-    return flat.filter((p) => normalizeArabic(p.name).includes(q)).slice(0, 12);
+    return flat
+      .filter((p) => normalizeArabic(p.lineage).includes(q))
+      .sort((a, b) => {
+        const an = normalizeArabic(a.name).startsWith(q) ? 0 : 1;
+        const bn = normalizeArabic(b.name).startsWith(q) ? 0 : 1;
+        return an - bn || a.generation - b.generation;
+      })
+      .slice(0, 12);
   }, [query, flat]);
 
   const parentOf = useMemo(() => {
@@ -109,11 +118,16 @@ export function TreeExplorer({ root, total }: Props) {
                 <button
                   key={r.id}
                   onClick={() => reveal(r)}
-                  className="block w-full border-b border-[var(--color-line)] px-4 py-2.5 text-start text-sm last:border-0 hover:bg-[var(--color-paper-2)]"
+                  className="block w-full border-b border-[var(--color-line)] px-4 py-2.5 text-start last:border-0 hover:bg-[var(--color-paper-2)]"
                 >
-                  <span className="font-semibold">{r.name}</span>
-                  <span className="ms-2 text-xs text-[var(--color-muted)]">
-                    {t('generation')} {formatNumber(r.generation, locale)}
+                  <span className="block text-sm font-semibold">{r.lineage}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--color-muted)]">
+                    <span>{t('generation')} {formatNumber(r.generation, locale)}</span>
+                    {r.spouseName && <span>· {r.spouseName}</span>}
+                    {r.burialPlace && <span>· {r.burialPlace}</span>}
+                    {r.children.length > 0 && (
+                      <span>· {formatNumber(r.children.length, locale)} {locale === 'ar' ? 'من الذرية' : 'children'}</span>
+                    )}
                   </span>
                 </button>
               ))

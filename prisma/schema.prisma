@@ -341,11 +341,15 @@ model SiteContent {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  username      String?   @unique
   emailVerified DateTime?
   name          String?
   passwordHash  String?
   role          Role      @default(MEMBER)
   isApproved    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  /// Forces a password change on next sign-in — set for every seeded account.
+  mustChangePassword Boolean @default(false)
   locale        String    @default("ar")
 
   accounts    Account[]
@@ -381,6 +385,19 @@ model Session {
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expires      DateTime
+}
+
+/// One-time codes for password changes. Short-lived, single-use.
+model OtpToken {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  purpose   String   @default("PASSWORD_CHANGE")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model VerificationToken {

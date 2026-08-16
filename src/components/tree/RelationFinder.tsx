@@ -22,13 +22,20 @@ function PersonPicker({
   const results = useMemo(() => {
     const n = normalizeArabic(q.trim());
     if (n.length < 2) return [];
-    return people.filter((p) => normalizeArabic(p.name).includes(n)).slice(0, 8);
+    return people
+      .filter((p) => normalizeArabic(p.lineage).includes(n))
+      .sort((a, b) => {
+        const an = normalizeArabic(a.name).startsWith(n) ? 0 : 1;
+        const bn = normalizeArabic(b.name).startsWith(n) ? 0 : 1;
+        return an - bn || a.generation - b.generation;
+      })
+      .slice(0, 8);
   }, [q, people]);
 
   if (value) {
     return (
       <div className="flex items-center justify-between rounded-xl border border-[var(--color-primary)] bg-[var(--color-paper-2)] px-4 py-3">
-        <span className="font-semibold">{value.name}</span>
+        <span className="text-sm font-semibold">{value.lineage}</span>
         <button
           onClick={() => { onPick(null); setQ(''); }}
           className="text-sm text-[var(--color-muted)] hover:text-[var(--color-primary)]"
@@ -54,10 +61,10 @@ function PersonPicker({
             <li key={r.id}>
               <button
                 onClick={() => { onPick(r); setQ(''); }}
-                className="block w-full border-b border-[var(--color-line)] px-4 py-2.5 text-start text-sm last:border-0 hover:bg-[var(--color-paper-2)]"
+                className="block w-full border-b border-[var(--color-line)] px-4 py-2.5 text-start last:border-0 hover:bg-[var(--color-paper-2)]"
               >
-                {r.name}
-                <span className="ms-2 text-xs text-[var(--color-muted)]">
+                <span className="block text-sm font-medium">{r.lineage}</span>
+                <span className="text-xs text-[var(--color-muted)]">
                   {locale === 'ar' ? 'الجيل' : 'Gen'} {formatNumber(r.generation, locale)}
                 </span>
               </button>

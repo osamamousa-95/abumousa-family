@@ -8,6 +8,7 @@
  */
 
 import { PrismaClient, Gender, Confidence, Visibility, MediaKind } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { normalizeArabic } from '../src/lib/arabic';
@@ -309,6 +310,38 @@ async function main() {
     },
   });
   console.log(`  albums      1 (notebook scans — ADMIN only)`);
+
+  // 8. Super admin — credentials come from the environment, never the repo.
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminUser = process.env.ADMIN_USERNAME;
+  const adminPass = process.env.ADMIN_PASSWORD;
+  if (adminEmail && adminUser && adminPass) {
+    const hash = await bcrypt.hash(adminPass, 12);
+    const existing = await prisma.user.findUnique({ where: { email: adminEmail.toLowerCase() } });
+    if (existing) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { username: adminUser.toLowerCase(), role: 'SUPER_ADMIN', isApproved: true, isActive: true },
+      });
+      console.log('  admin       (existing account kept — password unchanged)');
+    } else {
+      await prisma.user.create({
+        data: {
+          email: adminEmail.toLowerCase(),
+          username: adminUser.toLowerCase(),
+          name: adminUser,
+          passwordHash: hash,
+          role: 'SUPER_ADMIN',
+          isApproved: true,
+          isActive: true,
+          mustChangePassword: true,
+        },
+      });
+      console.log('  admin       created — must change password on first sign-in');
+    }
+  } else {
+    console.log('  admin       skipped (ADMIN_EMAIL / ADMIN_USERNAME / ADMIN_PASSWORD not set)');
+  }
 
   console.log('\n✓ Seed complete.');
   void MediaKind;
