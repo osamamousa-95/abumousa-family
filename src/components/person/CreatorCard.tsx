@@ -10,10 +10,12 @@ export function CreatorCard({
   locale,
   variant = 'full',
   withPhoto = false,
+  showInterests = true,
 }: {
   locale: string;
   variant?: 'full' | 'compact';
   withPhoto?: boolean;
+  showInterests?: boolean;
 }) {
   const ar = locale === 'ar';
   const c = CREATOR;
@@ -59,6 +61,7 @@ export function CreatorCard({
         </p>
       )}
 
+      {showInterests && (
       <div className="mt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
           {ar ? 'اهتماماتي' : 'Interests'}
@@ -74,6 +77,7 @@ export function CreatorCard({
           ))}
         </div>
       </div>
+      )}
 
       <div className="mt-5 space-y-3 border-t border-[var(--color-line)] pt-5">
         <div>

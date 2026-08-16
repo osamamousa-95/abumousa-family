@@ -1,6 +1,7 @@
 import { getTranslations, getLocale } from 'next-intl/server';
 import { Logo } from '@/components/brand/Logo';
 import { READER_MESSAGE } from '@/content/scripture';
+import { CREATOR } from '@/content/creator';
 
 export async function SiteFooter() {
   const t = await getTranslations('footer');
@@ -17,40 +18,51 @@ export async function SiteFooter() {
           </span>
         </div>
 
-        <p className="mx-auto mt-5 max-w-lg text-center font-[family-name:var(--font-quran)] text-lg leading-loose text-[var(--color-muted)]">
-          {t('verse')}
-        </p>
-
         <p className="mx-auto mt-7 max-w-xl border-y border-[var(--color-line)] py-5 text-center font-[family-name:var(--font-quran)] text-base leading-loose">
           {ar ? READER_MESSAGE.ar : READER_MESSAGE.en}
         </p>
 
-        <dl className="mx-auto mt-9 max-w-xl space-y-3 border-t border-[var(--color-line)] pt-7 text-center text-sm">
+        <dl className="mx-auto mt-9 max-w-xl space-y-4 text-center text-sm">
           <div>
             <dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              {t('recordLabel')}
+              {ar ? 'سجلّ العائلة المكتوب' : "The family's written record"}
             </dt>
             <dd className="mt-1 font-semibold">سلامة سالم أبو موسى</dd>
-            <dd className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">
-              {ar
-                ? 'حَفِظ أنساب العائلة وأخبارها ومدافنها جيلاً بعد جيل، وعلى ما دوّنه قام هذا السجلّ كله.'
-                : 'He preserved the family\'s lineages, accounts and burial places generation after generation; on what he wrote this entire record rests.'}
-            </dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              {t('researchLabel')}
+              {ar ? 'الإعداد والتصميم والتنفيذ' : 'Compilation, design and development'}
             </dt>
             <dd className="mt-1 font-semibold">أسامة وحيد سلمان أبو موسى</dd>
-            <dd className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">
-              {ar
-                ? 'تفريغ السجلّ وتوثيقه، وتوسيع السياق التاريخي، وتصميم الموقع وبرمجته.'
-                : 'Transcription and documentation, extension of the historical context, and the design and build of this site.'}
-            </dd>
           </div>
         </dl>
 
-        <p className="mt-8 text-center text-xs leading-relaxed text-[var(--color-muted)]">
+        {/* التواصل — ظاهر لكل قارئ، لا مخبوءاً في صفحة داخلية */}
+        <section className="mx-auto mt-10 max-w-lg rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper)] p-6 text-center">
+          <h2 className="font-[family-name:var(--font-display)] text-base font-bold">
+            {ar ? 'للتواصل مع مُعدّ السجلّ' : 'Contact the compiler'}
+          </h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[var(--color-muted)]">
+            {ar
+              ? 'لإضافة اسم ناقص، أو تصويب خطأ، أو إرسال خبرٍ أو صورة أو وثيقة عن أحد أفراد العائلة.'
+              : 'To add a missing name, correct an error, or send a story, photograph or document about a family member.'}
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {CREATOR.social.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)]"
+              >
+                {s.label}
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <p className="mt-9 text-center text-xs leading-relaxed text-[var(--color-muted)]">
           {t('sources')}
         </p>
         <p className="mt-4 text-center text-xs text-[var(--color-muted)]">

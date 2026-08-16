@@ -7,7 +7,7 @@ import { RelationFinder } from '@/components/tree/RelationFinder';
 import { getFullTree, flattenTree } from '@/server/services/tree';
 import { formatNumber } from '@/lib/arabic';
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,

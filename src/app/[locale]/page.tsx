@@ -7,6 +7,8 @@ import { Reveal } from '@/components/ui/Reveal';
 import { CountUp } from '@/components/ui/CountUp';
 import { ERAS } from '@/content/history';
 import { READER_MESSAGE } from '@/content/scripture';
+import { getFamilyStats } from '@/server/services/stats';
+import { StatCharts } from '@/components/home/StatCharts';
 
 export default async function HomePage({
   params,
@@ -15,10 +17,11 @@ export default async function HomePage({
   setRequestLocale(locale);
   const t = await getTranslations('home');
   const tn = await getTranslations('nav');
+  const stats = await getFamilyStats();
 
-  const stats = [
-    { value: 270, label: t('statPeople') },
-    { value: 10, label: t('statGenerations') },
+  const cards = [
+    { value: stats?.total ?? 0, label: t('statPeople') },
+    { value: stats?.generations ?? 0, label: t('statGenerations') },
     { value: 10, label: t('statPlaces') },
     { value: 5, label: locale === 'ar' ? 'ديار' : 'homelands' },
   ];
@@ -71,7 +74,7 @@ export default async function HomePage({
 
       <main className="mx-auto max-w-4xl px-5">
         <Reveal as="section" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map((s, i) => (
+          {cards.map((s, i) => (
             <div
               key={s.label}
               className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] px-4 py-6 text-center"
@@ -84,6 +87,12 @@ export default async function HomePage({
             </div>
           ))}
         </Reveal>
+
+        {stats && stats.topNames.length > 0 && (
+          <Reveal as="section" className="mt-12">
+            <StatCharts stats={stats} locale={locale} />
+          </Reveal>
+        )}
 
         <Reveal as="section" className="mt-16">
           <blockquote className="rounded-2xl bg-[var(--color-gold-100)] p-7 text-center">
@@ -142,8 +151,8 @@ export default async function HomePage({
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[var(--color-muted)]">
               {locale === 'ar'
-                ? 'الشجرة تضم ٢٧٠ اسماً في عشرة أجيال. اكتب اسمك أو اسم جدّك لترى عمود نسبك كاملاً إلى زين الدين الحربي.'
-                : 'The tree holds 270 names across ten generations. Search your name or your grandfather\'s to see your full lineage back to Zain al-Din al-Harbi.'}
+                ? 'الشجرة تضم أسماء العائلة في عشرة أجيال. اكتب اسمك أو اسم جدّك لترى عمود نسبك كاملاً إلى زين الدين الحربي.'
+                : 'The tree holds the family\'s names across ten generations. Search your name or your grandfather\'s to see your full lineage back to Zain al-Din al-Harbi.'}
             </p>
             <Link
               href="/tree"

@@ -83,7 +83,7 @@ export default async function AboutPage({
             <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
               {ar ? 'من أعدّ هذا السجلّ' : 'Who compiled this record'}
             </p>
-            <CreatorCard locale={locale} variant="full" withPhoto />
+            <CreatorCard locale={locale} variant="full" withPhoto showInterests={false} />
             <p className="mt-4 text-center text-xs text-[var(--color-muted)]">
               <Link href={`/person/${CREATOR_SLUG}`} className="hover:text-[var(--color-primary)] hover:underline">
                 {ar ? 'صفحته في شجرة العائلة ←' : 'His page in the family tree ←'}
