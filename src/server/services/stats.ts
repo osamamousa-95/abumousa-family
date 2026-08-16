@@ -7,6 +7,8 @@ export interface FamilyStats {
   males: number;
   females: number;
   topNames: { name: string; count: number }[];
+  internalMarriages: number;
+  totalMarriages: number;
   perGeneration: { generation: number; count: number }[];
 }
 
@@ -15,6 +17,11 @@ export interface FamilyStats {
  * never drift out of step with the tree the way hard-coded numbers do.
  */
 export async function getFamilyStats(): Promise<FamilyStats | null> {
+  const [internalMarriages, totalMarriages] = await Promise.all([
+    prisma.marriage.count({ where: { isInternal: true } }),
+    prisma.marriage.count(),
+  ]);
+
   const people = await prisma.person.findMany({
     where: { status: 'PUBLISHED' },
     select: { name: true, gender: true, generation: true },
@@ -50,5 +57,7 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
     females,
     topNames,
     perGeneration,
+    internalMarriages,
+    totalMarriages,
   };
 }

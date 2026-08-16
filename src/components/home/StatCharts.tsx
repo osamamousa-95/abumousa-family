@@ -18,6 +18,30 @@ export function StatCharts({
   const maxGen = Math.max(...stats.perGeneration.map((g) => g.count), 1);
 
   return (
+    <div className="space-y-4">
+      {stats.internalMarriages > 0 && (
+        <section className="rounded-[var(--radius-card)] border border-[var(--color-primary)] bg-[var(--color-paper-2)] p-5">
+          <div className="flex flex-wrap items-baseline gap-3">
+            <span className="font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-primary)]">
+              {formatNumber(stats.internalMarriages, locale)}
+            </span>
+            <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
+              {ar ? 'زيجة داخل العائلة' : 'marriages within the family'}
+            </h3>
+            <span className="text-xs text-[var(--color-muted)]">
+              {ar
+                ? `من أصل ${formatNumber(stats.totalMarriages, locale)} زيجة مسجّلة`
+                : `of ${formatNumber(stats.totalMarriages, locale)} recorded marriages`}
+            </span>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">
+            {ar
+              ? 'زيجاتٌ الزوجان فيها كلاهما من ذرية زين الدين الحربي — فتلتقي فروع العائلة من جديد بعد أن تفرّقت أجيالاً. وهي موثّقة في الشجرة من الطرفين معاً.'
+              : 'Marriages in which both partners descend from Zain al-Din al-Harbi — branches of the family meeting again after generations apart. Each is documented from both sides in the tree.'}
+          </p>
+        </section>
+      )}
+
     <div className="grid gap-4 sm:grid-cols-2">
       <section className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5">
         <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
@@ -76,6 +100,7 @@ export function StatCharts({
           ))}
         </ul>
       </section>
+    </div>
     </div>
   );
 }

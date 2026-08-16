@@ -63,8 +63,14 @@ export default async function PersonPage({
   const chain = await getLineageChain(p.id);
 
   const spouses = [
-    ...p.marriagesAsHusband.map((m) => ({ name: m.wife?.name ?? m.wifeNameText, slug: m.wife?.slug })),
-    ...p.marriagesAsWife.map((m) => ({ name: m.husband?.name ?? m.husbandNameText, slug: m.husband?.slug })),
+    ...p.marriagesAsHusband.map((m) => ({
+      name: m.wife?.name ?? m.wifeNameText, slug: m.wife?.slug,
+      isInternal: m.isInternal, note: m.notes,
+    })),
+    ...p.marriagesAsWife.map((m) => ({
+      name: m.husband?.name ?? m.husbandNameText, slug: m.husband?.slug,
+      isInternal: m.isInternal, note: m.notes,
+    })),
   ].filter((s) => s.name);
 
   const siblings = (p.father?.children ?? []).filter((c) => c.slug !== p.slug);
@@ -122,17 +128,29 @@ export default async function PersonPage({
           <Reveal delay={140}>
             <section className="mt-7">
               <h2 className="text-sm font-bold text-[var(--color-muted)]">{t('spouse')}</h2>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {spouses.map((s, i) =>
-                  s.slug ? (
-                    <Link key={i} href={`/person/${s.slug}`}
-                      className="rounded-full bg-[var(--color-gold-100)] px-4 py-1.5 text-sm font-medium text-[var(--color-gold-700)] hover:underline">
-                      {s.name}
-                    </Link>
-                  ) : (
-                    <span key={i} className="rounded-full bg-[var(--color-paper-2)] px-4 py-1.5 text-sm">{s.name}</span>
-                  )
-                )}
+              <div className="mt-2 space-y-2">
+                {spouses.map((s, i) => (
+                  <div key={i}>
+                    {s.slug ? (
+                      <Link href={`/person/${s.slug}`}
+                        className="inline-block rounded-full bg-[var(--color-gold-100)] px-4 py-1.5 text-sm font-medium text-[var(--color-gold-700)] hover:underline">
+                        {s.name}
+                      </Link>
+                    ) : (
+                      <span className="inline-block rounded-full bg-[var(--color-paper-2)] px-4 py-1.5 text-sm">
+                        {s.name}
+                      </span>
+                    )}
+                    {s.isInternal && (
+                      <span className="ms-2 inline-block rounded-full bg-[var(--color-primary)] px-3 py-1 text-[11px] font-semibold text-white">
+                        ⚭ {ar ? 'زواج من داخل العائلة' : 'married within the family'}
+                      </span>
+                    )}
+                    {s.note && (
+                      <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-muted)]">{s.note}</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </section>
           </Reveal>

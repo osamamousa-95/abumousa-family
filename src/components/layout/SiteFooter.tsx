@@ -25,9 +25,12 @@ export async function SiteFooter() {
         <dl className="mx-auto mt-9 max-w-xl space-y-4 text-center text-sm">
           <div>
             <dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              {ar ? 'سجلّ العائلة المكتوب' : "The family's written record"}
+              {ar ? 'كتابة السجلّ وتوثيقه ونقله' : 'Who wrote, documented and passed on the record'}
             </dt>
             <dd className="mt-1 font-semibold">سلامة سالم أبو موسى</dd>
+            <dd className="mt-1 text-xs text-[var(--color-muted)]">
+              {ar ? 'عليه يقوم كل اسمٍ وتاريخٍ في هذا الموقع' : 'On his work rests every name and date on this site'}
+            </dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wider text-[var(--color-muted)]">

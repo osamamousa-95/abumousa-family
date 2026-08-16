@@ -218,7 +218,10 @@ function TreeBranch({
             <Badge tone="page">ص {node.notebookPage}</Badge>
           )}
           {node.burialPlace && <Badge tone="burial">مدفن</Badge>}
-          {node.spouseName && <Badge tone="spouse">متزوج/ة</Badge>}
+          {node.spouseName && !node.isInternalMarriage && <Badge tone="spouse">متزوج/ة</Badge>}
+          {node.isInternalMarriage && (
+            <Badge tone="internal">⚭ زواج من العائلة</Badge>
+          )}
           {node.isRedacted && <Badge tone="redacted" title={redactedLabel}>—</Badge>}
         </span>
       </div>
@@ -251,7 +254,7 @@ function Badge({
   title,
 }: {
   children: React.ReactNode;
-  tone: 'page' | 'burial' | 'spouse' | 'redacted';
+  tone: 'page' | 'burial' | 'spouse' | 'redacted' | 'internal';
   title?: string;
 }) {
   const tones: Record<string, string> = {
@@ -259,6 +262,7 @@ function Badge({
     burial: 'bg-[var(--color-ox-100)] text-[var(--color-ox-700)]',
     spouse: 'bg-[var(--color-gold-100)] text-[var(--color-gold-700)]',
     redacted: 'bg-[var(--color-paper-2)] text-[var(--color-muted)]',
+    internal: 'bg-[var(--color-primary)] text-white',
   };
   return (
     <span

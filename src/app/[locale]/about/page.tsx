@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Reveal } from '@/components/ui/Reveal';
 import { CreatorCard } from '@/components/person/CreatorCard';
+import { ChroniclerCard } from '@/components/about/ChroniclerCard';
 import { Link } from '@/i18n/routing';
 import { READER_MESSAGE } from '@/content/scripture';
 import { CREATOR_SLUG } from '@/content/creator';
@@ -77,11 +78,17 @@ export default async function AboutPage({
           </blockquote>
         </Reveal>
 
-        {/* ── المعدّ — بعد كل المحتوى العائلي، لا قبله ── */}
+        <Reveal delay={220}>
+          <div className="mt-16">
+            <ChroniclerCard locale={locale} />
+          </div>
+        </Reveal>
+
+        {/* ── المعدّ — بعد صاحب السجلّ ── */}
         <Reveal delay={240}>
           <section className="mt-16">
             <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-              {ar ? 'من أعدّ هذا السجلّ' : 'Who compiled this record'}
+              {ar ? 'من نقل السجلّ ووسّعه' : 'Who transcribed and extended it'}
             </p>
             <CreatorCard locale={locale} variant="full" withPhoto showInterests={false} />
             <p className="mt-4 text-center text-xs text-[var(--color-muted)]">

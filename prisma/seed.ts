@@ -31,6 +31,7 @@ interface RawNode {
   d?: string;     // note
   bd?: string;    // birth date, as written (e.g. "٩ ديسمبر ١٩٩٥م")
   bio?: string;   // full biography — self-supplied by a living member
+  sNote?: string; // note about the marriage itself
   c?: RawNode[];  // children, eldest first
 }
 
@@ -87,9 +88,11 @@ const BURIAL_TO_PLACE: Record<string, string> = {
 };
 
 /** The two documented marriages between branches of the family. */
-const INTERNAL_MARRIAGES: { husbandCode: string; wifeCode: string }[] = [
-  { husbandCode: '1.1.1.1.1.2.1.4.1', wifeCode: '1.1.1.1.1.2.2.1' }, // ثائر ↔ نورهان
-  { husbandCode: '1.1.1.1.1.2.1.4',   wifeCode: '1.1.1.3.3.1.4'   }, // محمد ↔ راوية
+const INTERNAL_MARRIAGES: { husbandCode: string; wifeCode: string; note?: string }[] = [
+  { husbandCode: '1.1.1.1.1.2.1.4.1', wifeCode: '1.1.1.1.1.2.2.4',
+    note: 'أبناء عمّين — أبواهما سلمان وإبراهيم، ابنا عبد الرحمن بن حسان.' },
+  { husbandCode: '1.1.1.1.1.2.1.4', wifeCode: '1.1.1.3.3.1.4',
+    note: 'يلتقي نسبهما عند عبد العاطي بن موسى، عبر فرعين مختلفين.' },
 ];
 
 // ─────────────────────────── Flatten ───────────────────────────
@@ -262,6 +265,7 @@ async function main() {
         wifeId,
         wifeNameText: wifeId ? null : p.raw.s,
         isInternal: Boolean(wifeId),
+        notes: internal?.note ?? p.raw.sNote ?? null,
       },
     });
     marriages++;

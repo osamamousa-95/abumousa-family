@@ -17,6 +17,8 @@ export interface TreeNodeDTO {
   notebookPage: string | null;
   burialPlace: string | null;
   spouseName: string | null;
+  /** Both partners are documented family members — a marriage within the family. */
+  isInternalMarriage: boolean;
   /** "أسامة بن وحيد بن سلمان بن عبد الرحمن" — built server-side so search and
       the picker can disambiguate the many people who share a first name. */
   lineage: string;
@@ -49,7 +51,11 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       publicVisibility: true,
       sources: { select: { page: true }, take: 1 },
       marriagesAsHusband: {
-        select: { wifeNameText: true, wife: { select: { name: true } } },
+        select: { wifeNameText: true, isInternal: true, wife: { select: { name: true } } },
+        take: 1,
+      },
+      marriagesAsWife: {
+        select: { husbandNameText: true, isInternal: true, husband: { select: { name: true } } },
         take: 1,
       },
     },
@@ -70,10 +76,14 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
 
   for (const r of visible) {
     const redacted = r.isLiving && !canSeeLiving;
-    const spouse =
-      r.marriagesAsHusband[0]?.wife?.name ??
-      r.marriagesAsHusband[0]?.wifeNameText ??
-      null;
+    const mAsHusband = r.marriagesAsHusband[0];
+    const mAsWife = r.marriagesAsWife[0];
+    const spouse = mAsHusband
+      ? mAsHusband.wife?.name ?? mAsHusband.wifeNameText ?? null
+      : mAsWife
+        ? mAsWife.husband?.name ?? mAsWife.husbandNameText ?? null
+        : null;
+    const m = mAsHusband ?? mAsWife;
 
     byId.set(r.id, {
       id: r.id,
@@ -90,6 +100,7 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       notebookPage: redacted ? null : r.sources[0]?.page ?? null,
       burialPlace: redacted ? null : r.burialPlaceRaw,
       spouseName: redacted ? null : spouse,
+      isInternalMarriage: Boolean(m?.isInternal),
       lineage: '',
       children: [],
     });
