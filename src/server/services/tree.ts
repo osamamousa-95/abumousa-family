@@ -17,10 +17,11 @@ export interface TreeNodeDTO {
   notebookPage: string | null;
   burialPlace: string | null;
   spouseName: string | null;
-  /** Both partners are documented family members — a marriage within the family. */
+  /** Both partners are documented family members. */
   isInternalMarriage: boolean;
-  /** "أسامة بن وحيد بن سلمان بن عبد الرحمن" — built server-side so search and
-      the picker can disambiguate the many people who share a first name. */
+  /** [self, father, grandfather, …] up to the root — powers cumulative search. */
+  ancestors: string[];
+  /** "فلان بن فلان بن فلان بن فلان" for display. */
   lineage: string;
   children: TreeNodeDTO[];
 }
@@ -76,14 +77,11 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
 
   for (const r of visible) {
     const redacted = r.isLiving && !canSeeLiving;
-    const mAsHusband = r.marriagesAsHusband[0];
-    const mAsWife = r.marriagesAsWife[0];
-    const spouse = mAsHusband
-      ? mAsHusband.wife?.name ?? mAsHusband.wifeNameText ?? null
-      : mAsWife
-        ? mAsWife.husband?.name ?? mAsWife.husbandNameText ?? null
-        : null;
-    const m = mAsHusband ?? mAsWife;
+    const mH = r.marriagesAsHusband[0];
+    const mW = r.marriagesAsWife[0];
+    const spouse =
+      mH?.wife?.name ?? mH?.wifeNameText ??
+      mW?.husband?.name ?? mW?.husbandNameText ?? null;
 
     byId.set(r.id, {
       id: r.id,
@@ -100,27 +98,29 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       notebookPage: redacted ? null : r.sources[0]?.page ?? null,
       burialPlace: redacted ? null : r.burialPlaceRaw,
       spouseName: redacted ? null : spouse,
-      isInternalMarriage: Boolean(m?.isInternal),
+      isInternalMarriage: Boolean(mH?.isInternal || mW?.isInternal),
+      ancestors: [],
       lineage: '',
       children: [],
     });
   }
 
-  // Build a four-part name for every node once the map is complete.
-  const nameById = new Map([...byId.values()].map((n) => [n.id, n.name]));
-  const fatherById = new Map([...byId.values()].map((n) => [n.id, n.fatherId]));
+  // Build each person's ancestor chain once the map is complete.
+  const nameOf = new Map([...byId.values()].map((n) => [n.id, n.name]));
+  const fatherOf = new Map([...byId.values()].map((n) => [n.id, n.fatherId]));
   for (const node of byId.values()) {
-    const parts = [node.name];
+    const chain = [node.name];
     let cur = node.fatherId;
     let steps = 0;
-    while (cur && steps < 3) {
-      const nm = nameById.get(cur);
+    while (cur && steps < 12) {
+      const nm = nameOf.get(cur);
       if (!nm) break;
-      parts.push(nm);
-      cur = fatherById.get(cur) ?? null;
+      chain.push(nm);
+      cur = fatherOf.get(cur) ?? null;
       steps++;
     }
-    node.lineage = parts.join(' بن ');
+    node.ancestors = chain;
+    node.lineage = chain.slice(0, 4).join(' بن ');
   }
 
   let root: TreeNodeDTO | null = null;

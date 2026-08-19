@@ -8,6 +8,7 @@ import { Link } from '@/i18n/routing';
 import { prisma } from '@/server/db/prisma';
 import { getLineageChain } from '@/server/services/tree';
 import { formatNumber } from '@/lib/arabic';
+import { currentRole } from '@/server/auth/config';
 import { CreatorCard } from '@/components/person/CreatorCard';
 import { CREATOR_SLUG } from '@/content/creator';
 
@@ -30,8 +31,8 @@ async function load(slug: string) {
         select: { name: true, slug: true, gender: true },
       },
       sources: { include: { source: true } },
-      marriagesAsHusband: { include: { wife: { select: { name: true, slug: true } } } },
-      marriagesAsWife: { include: { husband: { select: { name: true, slug: true } } } },
+      marriagesAsHusband: { include: { wife: { select: { name: true, slug: true, father: { select: { name: true } } } } } },
+      marriagesAsWife: { include: { husband: { select: { name: true, slug: true, father: { select: { name: true } } } } } },
     },
   });
 }
@@ -65,13 +66,18 @@ export default async function PersonPage({
   const spouses = [
     ...p.marriagesAsHusband.map((m) => ({
       name: m.wife?.name ?? m.wifeNameText, slug: m.wife?.slug,
+      fatherName: m.wife?.father?.name ?? null,
       isInternal: m.isInternal, note: m.notes,
     })),
     ...p.marriagesAsWife.map((m) => ({
       name: m.husband?.name ?? m.husbandNameText, slug: m.husband?.slug,
+      fatherName: m.husband?.father?.name ?? null,
       isInternal: m.isInternal, note: m.notes,
     })),
   ].filter((s) => s.name);
+  const internalSpouses = spouses.filter((s) => s.isInternal);
+  const role = await currentRole();
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
 
   const siblings = (p.father?.children ?? []).filter((c) => c.slug !== p.slug);
 
@@ -124,33 +130,67 @@ export default async function PersonPage({
           </Reveal>
         )}
 
+        {isAdmin && (
+          <Reveal delay={60}>
+            <a
+              href={`/${locale}/admin/people?id=${p.id}`}
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)]"
+            >
+              ✎ {ar ? 'تعديل بيانات هذا الفرد' : 'Edit this person'}
+            </a>
+          </Reveal>
+        )}
+
+        {internalSpouses.length > 0 && (
+          <Reveal delay={100}>
+            <section className="mt-7 rounded-2xl border-2 border-[var(--color-primary)] bg-[var(--color-paper-2)] p-5">
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
+                <span className="text-lg leading-none">⚭</span>
+                {ar ? 'زواج من داخل العائلة' : 'A marriage within the family'}
+              </p>
+              {internalSpouses.map((s, i) => (
+                <div key={i} className="mt-3">
+                  <p className="font-[family-name:var(--font-display)] text-lg font-bold">
+                    {p.name}
+                    <span className="mx-2 text-[var(--color-primary)]">⚭</span>
+                    {s.slug ? (
+                      <Link href={`/person/${s.slug}`} className="hover:underline">{s.name}</Link>
+                    ) : s.name}
+                  </p>
+                  {s.fatherName && (
+                    <p className="mt-0.5 text-sm text-[var(--color-muted)]">
+                      {s.name} {ar ? 'بنت' : 'daughter of'} {s.fatherName}
+                    </p>
+                  )}
+                  {s.note && (
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">{s.note}</p>
+                  )}
+                </div>
+              ))}
+              <p className="mt-4 border-t border-[var(--color-line)] pt-3 text-xs leading-relaxed text-[var(--color-muted)]">
+                {ar
+                  ? 'كلا الزوجين من ذرية زين الدين الحربي — فرعان من العائلة التقيا من جديد بعد أن تفرّقا أجيالاً.'
+                  : 'Both partners descend from Zain al-Din al-Harbi — two branches of the family meeting again after generations apart.'}
+              </p>
+            </section>
+          </Reveal>
+        )}
+
         {!redacted && spouses.length > 0 && (
           <Reveal delay={140}>
             <section className="mt-7">
               <h2 className="text-sm font-bold text-[var(--color-muted)]">{t('spouse')}</h2>
-              <div className="mt-2 space-y-2">
-                {spouses.map((s, i) => (
-                  <div key={i}>
-                    {s.slug ? (
-                      <Link href={`/person/${s.slug}`}
-                        className="inline-block rounded-full bg-[var(--color-gold-100)] px-4 py-1.5 text-sm font-medium text-[var(--color-gold-700)] hover:underline">
-                        {s.name}
-                      </Link>
-                    ) : (
-                      <span className="inline-block rounded-full bg-[var(--color-paper-2)] px-4 py-1.5 text-sm">
-                        {s.name}
-                      </span>
-                    )}
-                    {s.isInternal && (
-                      <span className="ms-2 inline-block rounded-full bg-[var(--color-primary)] px-3 py-1 text-[11px] font-semibold text-white">
-                        ⚭ {ar ? 'زواج من داخل العائلة' : 'married within the family'}
-                      </span>
-                    )}
-                    {s.note && (
-                      <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-muted)]">{s.note}</p>
-                    )}
-                  </div>
-                ))}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {spouses.filter((s) => !s.isInternal).map((s, i) =>
+                  s.slug ? (
+                    <Link key={i} href={`/person/${s.slug}`}
+                      className="rounded-full bg-[var(--color-gold-100)] px-4 py-1.5 text-sm font-medium text-[var(--color-gold-700)] hover:underline">
+                      {s.name}
+                    </Link>
+                  ) : (
+                    <span key={i} className="rounded-full bg-[var(--color-paper-2)] px-4 py-1.5 text-sm">{s.name}</span>
+                  )
+                )}
               </div>
             </section>
           </Reveal>

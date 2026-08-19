@@ -29,9 +29,9 @@ interface RawNode {
   b?: string;     // burial place as written
   s?: string;     // spouse, free text
   d?: string;     // note
+  sNote?: string; // note about the marriage
   bd?: string;    // birth date, as written (e.g. "٩ ديسمبر ١٩٩٥م")
   bio?: string;   // full biography — self-supplied by a living member
-  sNote?: string; // note about the marriage itself
   c?: RawNode[];  // children, eldest first
 }
 
@@ -315,36 +315,29 @@ async function main() {
   });
   console.log(`  albums      1 (notebook scans — ADMIN only)`);
 
-  // 8. Super admin — credentials come from the environment, never the repo.
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminUser = process.env.ADMIN_USERNAME;
   const adminPass = process.env.ADMIN_PASSWORD;
   if (adminEmail && adminUser && adminPass) {
-    const hash = await bcrypt.hash(adminPass, 12);
-    const existing = await prisma.user.findUnique({ where: { email: adminEmail.toLowerCase() } });
-    if (existing) {
+    const existingUser = await prisma.user.findUnique({ where: { email: adminEmail.toLowerCase() } });
+    if (existingUser) {
       await prisma.user.update({
-        where: { id: existing.id },
+        where: { id: existingUser.id },
         data: { username: adminUser.toLowerCase(), role: 'SUPER_ADMIN', isApproved: true, isActive: true },
       });
-      console.log('  admin       (existing account kept — password unchanged)');
+      console.log('  admin       existing account kept — password unchanged');
     } else {
       await prisma.user.create({
         data: {
-          email: adminEmail.toLowerCase(),
-          username: adminUser.toLowerCase(),
-          name: adminUser,
-          passwordHash: hash,
-          role: 'SUPER_ADMIN',
-          isApproved: true,
-          isActive: true,
-          mustChangePassword: true,
+          email: adminEmail.toLowerCase(), username: adminUser.toLowerCase(), name: adminUser,
+          passwordHash: await bcrypt.hash(adminPass, 12),
+          role: 'SUPER_ADMIN', isApproved: true, isActive: true, mustChangePassword: true,
         },
       });
       console.log('  admin       created — must change password on first sign-in');
     }
   } else {
-    console.log('  admin       skipped (ADMIN_EMAIL / ADMIN_USERNAME / ADMIN_PASSWORD not set)');
+    console.log('  admin       skipped (ADMIN_* env vars not set)');
   }
 
   console.log('\n✓ Seed complete.');

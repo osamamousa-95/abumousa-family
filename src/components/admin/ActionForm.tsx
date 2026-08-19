@@ -1,32 +1,33 @@
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useRef, useState, useTransition, type ReactNode } from 'react';
 
 type Result = { ok: boolean; message: string };
 
-/** Wraps a server action, showing its result inline. */
 export function ActionForm({
-  action, children, submitLabel, resetOnSuccess = false,
+  action, children, submitLabel, onSuccess, resetOnSuccess = false,
 }: {
   action: (fd: FormData) => Promise<Result>;
   children: ReactNode;
   submitLabel: string;
+  onSuccess?: () => void;
   resetOnSuccess?: boolean;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [pending, start] = useTransition();
 
   return (
     <form
-      action={(fd) => {
-        start(async () => {
-          const r = await action(fd);
-          setResult(r);
-          if (r.ok && resetOnSuccess) {
-            (document.activeElement as HTMLElement)?.blur();
-          }
-        });
-      }}
+      ref={formRef}
+      action={(fd) => start(async () => {
+        const r = await action(fd);
+        setResult(r);
+        if (r.ok) {
+          if (resetOnSuccess) formRef.current?.reset();
+          onSuccess?.();
+        }
+      })}
       className="space-y-3"
     >
       {children}
@@ -51,9 +52,7 @@ export function ConfirmButton({
   onConfirm, label, confirmText, danger = false,
 }: {
   onConfirm: () => Promise<Result>;
-  label: string;
-  confirmText: string;
-  danger?: boolean;
+  label: string; confirmText: string; danger?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -69,8 +68,7 @@ export function ConfirmButton({
         className={`rounded-full border px-3 py-1 text-xs transition disabled:opacity-50 ${
           danger
             ? 'border-[var(--color-ox-300)] text-[var(--color-ox-600)] hover:bg-[var(--color-ox-100)]'
-            : 'border-[var(--color-line)] hover:border-[var(--color-primary)]'
-        }`}
+            : 'border-[var(--color-line)] hover:border-[var(--color-primary)]'}`}
       >
         {pending ? '…' : label}
       </button>

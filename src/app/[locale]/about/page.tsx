@@ -79,12 +79,10 @@ export default async function AboutPage({
         </Reveal>
 
         <Reveal delay={220}>
-          <div className="mt-16">
-            <ChroniclerCard locale={locale} />
-          </div>
+          <div className="mt-16"><ChroniclerCard locale={locale} /></div>
         </Reveal>
 
-        {/* ── المعدّ — بعد صاحب السجلّ ── */}
+        {/* ── المعدّ — بعد كل المحتوى العائلي، لا قبله ── */}
         <Reveal delay={240}>
           <section className="mt-16">
             <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">

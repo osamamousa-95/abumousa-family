@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { normalizeArabic, formatNumber } from '@/lib/arabic';
+import { formatNumber } from '@/lib/arabic';
+import { tokenizeQuery, matchesLineage, rankResults } from '@/lib/search';
 import { computeKinship, type KinNode } from '@/lib/kinship';
 import type { TreeNodeDTO } from '@/server/services/tree';
 
@@ -20,16 +21,9 @@ function PersonPicker({
 }) {
   const [q, setQ] = useState('');
   const results = useMemo(() => {
-    const n = normalizeArabic(q.trim());
-    if (n.length < 2) return [];
-    return people
-      .filter((p) => normalizeArabic(p.lineage).includes(n))
-      .sort((a, b) => {
-        const an = normalizeArabic(a.name).startsWith(n) ? 0 : 1;
-        const bn = normalizeArabic(b.name).startsWith(n) ? 0 : 1;
-        return an - bn || a.generation - b.generation;
-      })
-      .slice(0, 8);
+    const tokens = tokenizeQuery(q);
+    if (tokens.length === 0 || tokens[0].length < 2) return [];
+    return rankResults(people.filter((p) => matchesLineage(p.ancestors, tokens)), tokens).slice(0, 10);
   }, [q, people]);
 
   if (value) {

@@ -10,37 +10,46 @@ import { computePaths } from '@/lib/tree-path';
 
 type Result = { ok: boolean; message: string };
 
+const str = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim() || null;
+
 /** Recompute every path after any structural change. */
 async function recomputePaths() {
   const nodes = await prisma.person.findMany({
     select: { id: true, fatherId: true, sortOrder: true },
   });
   const paths = computePaths(nodes);
-  await prisma.$transaction(
-    paths.map((p) =>
-      prisma.person.update({
-        where: { id: p.id },
-        data: { path: p.path, generation: p.generation },
-      })
-    )
-  );
+  const BATCH = 100;
+  for (let i = 0; i < paths.length; i += BATCH) {
+    await prisma.$transaction(
+      paths.slice(i, i + BATCH).map((p) =>
+        prisma.person.update({
+          where: { id: p.id },
+          data: { path: p.path, generation: p.generation },
+        })
+      )
+    );
+  }
 }
+
+async function log(session: unknown, action: string, id: string, data: object) {
+  await prisma.auditLog.create({
+    data: {
+      userId: (session as { user?: { id?: string } })?.user?.id ?? null,
+      action, entity: 'Person', entityId: id, after: data,
+    },
+  });
+}
+
+// ─────────────── Add ───────────────
 
 export async function addPerson(formData: FormData): Promise<Result> {
   const session = await requireAdmin();
   if (!session) return { ok: false, message: 'غير مصرّح.' };
 
-  const name = String(formData.get('name') ?? '').trim();
-  const fatherId = String(formData.get('fatherId') ?? '').trim() || null;
-  const gender = String(formData.get('gender') ?? 'MALE');
-  const birthDateText = String(formData.get('birthDateText') ?? '').trim() || null;
-  const deathDateText = String(formData.get('deathDateText') ?? '').trim() || null;
-  const burialPlaceRaw = String(formData.get('burialPlaceRaw') ?? '').trim() || null;
-  const spouseName = String(formData.get('spouseName') ?? '').trim() || null;
-  const biography = String(formData.get('biography') ?? '').trim() || null;
-
+  const name = str(formData, 'name');
   if (!name) return { ok: false, message: 'الاسم مطلوب.' };
 
+  const fatherId = str(formData, 'fatherId');
   const father = fatherId
     ? await prisma.person.findUnique({
         where: { id: fatherId },
@@ -49,8 +58,10 @@ export async function addPerson(formData: FormData): Promise<Result> {
     : null;
   if (fatherId && !father) return { ok: false, message: 'لم يُعثر على الأب.' };
 
-  const sortOrder = (father?._count.children ?? 0) + 1;
+  const sortOrder = Number(formData.get('sortOrder')) || (father?._count.children ?? 0) + 1;
   const provisionalPath = father ? `${father.path}.${sortOrder}` : '1';
+  const deathDateText = str(formData, 'deathDateText');
+  const burialPlaceRaw = str(formData, 'burialPlaceRaw');
 
   const person = await prisma.person.create({
     data: {
@@ -58,91 +69,202 @@ export async function addPerson(formData: FormData): Promise<Result> {
       nameLatin: transliterate(name) || null,
       nameNormalized: normalizeArabic(name),
       slug: personSlug(name, provisionalPath),
-      gender: gender === 'FEMALE' ? 'FEMALE' : 'MALE',
+      gender: formData.get('gender') === 'FEMALE' ? 'FEMALE' : 'MALE',
       fatherId,
       sortOrder,
       path: provisionalPath,
       generation: (father?.generation ?? 0) + 1,
-      birthDateText,
+      birthDateText: str(formData, 'birthDateText'),
       deathDateText,
       burialPlaceRaw,
-      biography,
-      isLiving: !deathDateText && !burialPlaceRaw,
+      occupation: str(formData, 'occupation'),
+      biography: str(formData, 'biography'),
+      notes: str(formData, 'notes'),
+      nameConfidence: (formData.get('nameConfidence') as 'CONFIRMED' | 'PROBABLE' | 'UNCERTAIN') ?? 'CONFIRMED',
+      isMartyr: formData.get('isMartyr') === 'on',
+      publicVisibility: (formData.get('publicVisibility') as 'PUBLIC' | 'MEMBERS' | 'ADMIN') ?? 'PUBLIC',
+      isLiving: formData.get('isLiving') === 'on' || (!deathDateText && !burialPlaceRaw),
     },
   });
 
+  const spouseName = str(formData, 'spouseName');
   if (spouseName) {
     await prisma.marriage.create({
       data:
-        gender === 'FEMALE'
+        formData.get('gender') === 'FEMALE'
           ? { wifeId: person.id, husbandNameText: spouseName }
           : { husbandId: person.id, wifeNameText: spouseName },
     });
   }
 
   await recomputePaths();
-  await prisma.auditLog.create({
-    data: {
-      userId: (session.user as { id?: string }).id ?? null,
-      action: 'create', entity: 'Person', entityId: person.id,
-      after: { name, fatherId },
-    },
-  });
-
+  await log(session, 'create', person.id, { name });
   revalidatePath('/', 'layout');
   return { ok: true, message: `أُضيف «${name}» بنجاح.` };
 }
+
+// ─────────────── Update — every field ───────────────
 
 export async function updatePerson(formData: FormData): Promise<Result> {
   const session = await requireAdmin();
   if (!session) return { ok: false, message: 'غير مصرّح.' };
 
   const id = String(formData.get('id') ?? '');
-  const name = String(formData.get('name') ?? '').trim();
+  const name = str(formData, 'name');
   if (!id || !name) return { ok: false, message: 'بيانات ناقصة.' };
+
+  const current = await prisma.person.findUnique({
+    where: { id },
+    select: { fatherId: true, sortOrder: true, path: true },
+  });
+  if (!current) return { ok: false, message: 'لم يُعثر على الشخص.' };
+
+  const newFatherId = str(formData, 'fatherId');
+  const newSortOrder = Number(formData.get('sortOrder')) || current.sortOrder;
+
+  // Guard against making someone their own ancestor.
+  if (newFatherId && newFatherId !== current.fatherId) {
+    const target = await prisma.person.findUnique({
+      where: { id: newFatherId }, select: { path: true },
+    });
+    if (target?.path.startsWith(`${current.path}.`) || target?.path === current.path) {
+      return { ok: false, message: 'لا يمكن جعل أحد ذريته أباً له.' };
+    }
+  }
+
+  const structural = newFatherId !== current.fatherId || newSortOrder !== current.sortOrder;
 
   await prisma.person.update({
     where: { id },
     data: {
       name,
       nameNormalized: normalizeArabic(name),
-      nameLatin: transliterate(name) || null,
-      birthDateText: String(formData.get('birthDateText') ?? '').trim() || null,
-      deathDateText: String(formData.get('deathDateText') ?? '').trim() || null,
-      burialPlaceRaw: String(formData.get('burialPlaceRaw') ?? '').trim() || null,
-      biography: String(formData.get('biography') ?? '').trim() || null,
-      gender: String(formData.get('gender') ?? 'MALE') === 'FEMALE' ? 'FEMALE' : 'MALE',
+      nameLatin: str(formData, 'nameLatin') ?? transliterate(name) ?? null,
+      gender: formData.get('gender') === 'FEMALE' ? 'FEMALE' : 'MALE',
+      fatherId: newFatherId,
+      sortOrder: newSortOrder,
+      birthDateText: str(formData, 'birthDateText'),
+      deathDateText: str(formData, 'deathDateText'),
+      burialPlaceRaw: str(formData, 'burialPlaceRaw'),
+      occupation: str(formData, 'occupation'),
+      biography: str(formData, 'biography'),
+      notes: str(formData, 'notes'),
+      nameConfidence: (formData.get('nameConfidence') as 'CONFIRMED' | 'PROBABLE' | 'UNCERTAIN') ?? 'CONFIRMED',
+      isMartyr: formData.get('isMartyr') === 'on',
+      isLiving: formData.get('isLiving') === 'on',
+      publicVisibility: (formData.get('publicVisibility') as 'PUBLIC' | 'MEMBERS' | 'ADMIN') ?? 'PUBLIC',
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: (session.user as { id?: string }).id ?? null,
-      action: 'update', entity: 'Person', entityId: id, after: { name },
-    },
-  });
+  if (structural) await recomputePaths();
+  await log(session, 'update', id, { name });
   revalidatePath('/', 'layout');
-  return { ok: true, message: 'حُفظت التعديلات.' };
+  return { ok: true, message: structural ? 'حُفظت التعديلات وأُعيد ترقيم الشجرة.' : 'حُفظت التعديلات.' };
 }
 
-export async function deletePerson(id: string): Promise<Result> {
+// ─────────────── Spouses ───────────────
+
+export async function addSpouse(formData: FormData): Promise<Result> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, message: 'غير مصرّح.' };
+
+  const personId = String(formData.get('personId') ?? '');
+  const spouseId = str(formData, 'spouseId');
+  const spouseName = str(formData, 'spouseName');
+  const notes = str(formData, 'notes');
+  if (!personId || (!spouseId && !spouseName)) {
+    return { ok: false, message: 'اختر زوجاً من العائلة أو اكتب اسماً.' };
+  }
+
+  const person = await prisma.person.findUnique({
+    where: { id: personId }, select: { gender: true, name: true },
+  });
+  if (!person) return { ok: false, message: 'لم يُعثر على الشخص.' };
+
+  const isFemale = person.gender === 'FEMALE';
+  await prisma.marriage.create({
+    data: {
+      husbandId: isFemale ? spouseId : personId,
+      wifeId: isFemale ? personId : spouseId,
+      husbandNameText: isFemale && !spouseId ? spouseName : null,
+      wifeNameText: !isFemale && !spouseId ? spouseName : null,
+      isInternal: Boolean(spouseId),
+      notes,
+    },
+  });
+
+  revalidatePath('/', 'layout');
+  return {
+    ok: true,
+    message: spouseId ? 'أُضيف الزواج ووُسم أنه من داخل العائلة.' : 'أُضيف الزواج.',
+  };
+}
+
+export async function deleteMarriage(id: string): Promise<Result> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, message: 'غير مصرّح.' };
+  await prisma.marriage.delete({ where: { id } });
+  revalidatePath('/', 'layout');
+  return { ok: true, message: 'حُذف قيد الزواج.' };
+}
+
+// ─────────────── Delete ───────────────
+
+export async function deletePerson(id: string, cascade = false): Promise<Result> {
   const session = await requireSuperAdmin();
   if (!session) return { ok: false, message: 'الحذف للمشرف الرئيسي فقط.' };
 
-  const kids = await prisma.person.count({ where: { fatherId: id } });
-  if (kids > 0) return { ok: false, message: `لا يمكن الحذف — له ${kids} من الذرية. احذفهم أولاً أو انقلهم.` };
+  const person = await prisma.person.findUnique({
+    where: { id }, select: { name: true, path: true },
+  });
+  if (!person) return { ok: false, message: 'لم يُعثر على الشخص.' };
 
-  const person = await prisma.person.findUnique({ where: { id }, select: { name: true } });
+  const descendants = await prisma.person.count({
+    where: { path: { startsWith: `${person.path}.` } },
+  });
+
+  if (descendants > 0 && !cascade) {
+    return {
+      ok: false,
+      message: `له ${descendants} من الذرية. اختر «حذف مع الذرية» إن كنت متأكداً، أو انقلهم إلى أبٍ آخر أولاً.`,
+    };
+  }
+
+  if (descendants > 0) {
+    await prisma.person.deleteMany({ where: { path: { startsWith: `${person.path}.` } } });
+  }
   await prisma.person.delete({ where: { id } });
   await recomputePaths();
-  await prisma.auditLog.create({
-    data: {
-      userId: (session.user as { id?: string }).id ?? null,
-      action: 'delete', entity: 'Person', entityId: id, before: { name: person?.name },
-    },
-  });
+  await log(session, 'delete', id, { name: person.name, descendants });
   revalidatePath('/', 'layout');
-  return { ok: true, message: `حُذف «${person?.name}».` };
+  return {
+    ok: true,
+    message: `حُذف «${person.name}»${descendants ? ` ومعه ${descendants} من ذريته` : ''}.`,
+  };
+}
+
+/** Move a whole subtree under a different father without deleting anything. */
+export async function reassignFather(personId: string, newFatherId: string): Promise<Result> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, message: 'غير مصرّح.' };
+
+  const [person, target] = await Promise.all([
+    prisma.person.findUnique({ where: { id: personId }, select: { path: true, name: true } }),
+    prisma.person.findUnique({ where: { id: newFatherId }, select: { path: true, _count: { select: { children: true } } } }),
+  ]);
+  if (!person || !target) return { ok: false, message: 'لم يُعثر على أحد الطرفين.' };
+  if (target.path.startsWith(`${person.path}.`) || target.path === person.path) {
+    return { ok: false, message: 'لا يمكن نقل شخص تحت أحد ذريته.' };
+  }
+
+  await prisma.person.update({
+    where: { id: personId },
+    data: { fatherId: newFatherId, sortOrder: target._count.children + 1 },
+  });
+  await recomputePaths();
+  await log(session, 'update', personId, { moved: person.name });
+  revalidatePath('/', 'layout');
+  return { ok: true, message: `نُقل «${person.name}» وذريته إلى الأب الجديد.` };
 }
 
 // ─────────────── Users ───────────────
@@ -151,25 +273,22 @@ export async function createAdminUser(formData: FormData): Promise<Result> {
   const session = await requireSuperAdmin();
   if (!session) return { ok: false, message: 'إضافة المشرفين للمشرف الرئيسي فقط.' };
 
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  const username = String(formData.get('username') ?? '').trim().toLowerCase();
-  const name = String(formData.get('name') ?? '').trim();
-  const tempPassword = String(formData.get('tempPassword') ?? '').trim();
-
+  const email = (str(formData, 'email') ?? '').toLowerCase();
+  const username = (str(formData, 'username') ?? '').toLowerCase();
+  const tempPassword = String(formData.get('tempPassword') ?? '');
   if (!email || !username || tempPassword.length < 8) {
     return { ok: false, message: 'البريد واسم المستخدم مطلوبان، وكلمة المرور ٨ محارف فأكثر.' };
   }
-  const exists = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
-  if (exists) return { ok: false, message: 'البريد أو اسم المستخدم مستعمل بالفعل.' };
+  if (await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } })) {
+    return { ok: false, message: 'البريد أو اسم المستخدم مستعمل بالفعل.' };
+  }
 
   await prisma.user.create({
     data: {
-      email, username, name: name || username,
+      email, username,
+      name: str(formData, 'name') ?? username,
       passwordHash: await bcrypt.hash(tempPassword, 12),
-      role: 'ADMIN',
-      isApproved: true,
-      isActive: true,
-      mustChangePassword: true,
+      role: 'ADMIN', isApproved: true, isActive: true, mustChangePassword: true,
     },
   });
   revalidatePath('/ar/admin/users');
@@ -231,14 +350,10 @@ export async function requestOtp(): Promise<Result> {
       });
       return { ok: true, message: `أُرسل رمز التحقق إلى ${email}.` };
     } catch {
-      /* fall through */
+      /* fall through to on-screen code */
     }
   }
-  // No mail provider configured yet — surface the code so the flow still works.
-  return {
-    ok: true,
-    message: `لم يُضبط مزوّد البريد بعد. رمز التحقق: ${code} — صالح لعشر دقائق.`,
-  };
+  return { ok: true, message: `لم يُضبط مزوّد البريد بعد. رمز التحقق: ${code} — صالح لعشر دقائق.` };
 }
 
 export async function changePassword(formData: FormData): Promise<Result> {
@@ -248,10 +363,10 @@ export async function changePassword(formData: FormData): Promise<Result> {
 
   const code = String(formData.get('code') ?? '').trim();
   const next = String(formData.get('password') ?? '');
-  const confirm = String(formData.get('confirm') ?? '');
-
   if (next.length < 10) return { ok: false, message: 'كلمة المرور عشرة محارف فأكثر.' };
-  if (next !== confirm) return { ok: false, message: 'الكلمتان غير متطابقتين.' };
+  if (next !== String(formData.get('confirm') ?? '')) {
+    return { ok: false, message: 'الكلمتان غير متطابقتين.' };
+  }
 
   const token = await prisma.otpToken.findFirst({
     where: { userId, purpose: 'PASSWORD_CHANGE', usedAt: null, expiresAt: { gt: new Date() } },
@@ -269,6 +384,5 @@ export async function changePassword(formData: FormData): Promise<Result> {
     }),
     prisma.otpToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
   ]);
-
   return { ok: true, message: 'غُيّرت كلمة المرور. سجّل الخروج ثم ادخل بها.' };
 }

@@ -3,7 +3,8 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { normalizeArabic, formatNumber } from '@/lib/arabic';
+import { formatNumber } from '@/lib/arabic';
+import { tokenizeQuery, matchesLineage, rankResults } from '@/lib/search';
 import type { TreeNodeDTO } from '@/server/services/tree';
 
 interface Props {
@@ -34,19 +35,11 @@ export function TreeExplorer({ root, total }: Props) {
     return out;
   }, [root]);
 
-  // Matches the person's own name, their father's or their grandfather's —
-  // the three ways someone actually asks for a relative.
   const results = useMemo(() => {
-    const q = normalizeArabic(query.trim());
-    if (q.length < 2) return [];
-    return flat
-      .filter((p) => normalizeArabic(p.lineage).includes(q))
-      .sort((a, b) => {
-        const an = normalizeArabic(a.name).startsWith(q) ? 0 : 1;
-        const bn = normalizeArabic(b.name).startsWith(q) ? 0 : 1;
-        return an - bn || a.generation - b.generation;
-      })
-      .slice(0, 12);
+    const tokens = tokenizeQuery(query);
+    if (tokens.length === 0 || tokens[0].length < 2) return [];
+    const hits = flat.filter((p) => matchesLineage(p.ancestors, tokens));
+    return rankResults(hits, tokens).slice(0, 15);
   }, [query, flat]);
 
   const parentOf = useMemo(() => {
@@ -103,7 +96,9 @@ export function TreeExplorer({ root, total }: Props) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t('search')}
+          placeholder={locale === 'ar'
+            ? 'اكتب الاسم، ثم اسم الأب، ثم الجدّ لتضييق النتائج…'
+            : 'Type a name, then the father, then the grandfather…'}
           className="w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-2)] px-4 py-3 text-base outline-none focus:border-[var(--color-primary)]"
           aria-label={t('search')}
         />
@@ -121,7 +116,7 @@ export function TreeExplorer({ root, total }: Props) {
                   className="block w-full border-b border-[var(--color-line)] px-4 py-2.5 text-start last:border-0 hover:bg-[var(--color-paper-2)]"
                 >
                   <span className="block text-sm font-semibold">{r.lineage}</span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--color-muted)]">
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-[var(--color-muted)]">
                     <span>{t('generation')} {formatNumber(r.generation, locale)}</span>
                     {r.spouseName && <span>· {r.spouseName}</span>}
                     {r.burialPlace && <span>· {r.burialPlace}</span>}
@@ -219,9 +214,7 @@ function TreeBranch({
           )}
           {node.burialPlace && <Badge tone="burial">مدفن</Badge>}
           {node.spouseName && !node.isInternalMarriage && <Badge tone="spouse">متزوج/ة</Badge>}
-          {node.isInternalMarriage && (
-            <Badge tone="internal">⚭ زواج من العائلة</Badge>
-          )}
+          {node.isInternalMarriage && <Badge tone="internal">⚭ زواج من العائلة</Badge>}
           {node.isRedacted && <Badge tone="redacted" title={redactedLabel}>—</Badge>}
         </span>
       </div>

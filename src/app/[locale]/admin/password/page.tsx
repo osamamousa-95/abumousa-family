@@ -6,9 +6,7 @@ import { Field } from '@/components/admin/Field';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PasswordPage({
-  params,
-}: { params: Promise<{ locale: string }> }) {
+export default async function PasswordPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const session = await requireAdmin();
   if (!session) redirect(`/${locale}/admin/login`);
@@ -21,10 +19,7 @@ export default async function PasswordPage({
   return (
     <>
       <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">تغيير كلمة المرور</h1>
-      <p className="mt-2 text-sm text-[var(--color-muted)]">
-        اطلب رمز التحقق أولاً، ثم أدخله مع كلمة المرور الجديدة.
-      </p>
-
+      <p className="mt-2 text-sm text-[var(--color-muted)]">اطلب رمز التحقق أولاً، ثم أدخله مع كلمة المرور الجديدة.</p>
       <div className="mt-7 grid gap-5 sm:grid-cols-2">
         <section className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5">
           <h2 className="font-[family-name:var(--font-display)] font-bold">١ — اطلب الرمز</h2>
@@ -35,7 +30,6 @@ export default async function PasswordPage({
             </ActionForm>
           </div>
         </section>
-
         <section className="rounded-2xl border border-[var(--color-line)] p-5">
           <h2 className="font-[family-name:var(--font-display)] font-bold">٢ — غيّر الكلمة</h2>
           <div className="mt-4">

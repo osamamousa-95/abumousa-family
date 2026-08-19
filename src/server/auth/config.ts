@@ -13,15 +13,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const identifier = String(creds?.identifier ?? '').trim().toLowerCase();
         const password = String(creds?.password ?? '');
         if (!identifier || !password) return null;
-
         const user = await prisma.user.findFirst({
           where: { OR: [{ email: identifier }, { username: identifier }] },
         });
         if (!user?.passwordHash || !user.isActive) return null;
-
-        const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
-
+        if (!(await bcrypt.compare(password, user.passwordHash))) return null;
         return {
           id: user.id,
           email: user.email,
@@ -38,11 +34,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = (user as { role?: string }).role;
         token.mustChangePassword = (user as { mustChangePassword?: boolean }).mustChangePassword;
       }
-      // Re-read on session refresh so a password change clears the flag.
       if (trigger === 'update' && token.sub) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { role: true, mustChangePassword: true, isActive: true },
+          select: { role: true, mustChangePassword: true },
         });
         if (fresh) {
           token.role = fresh.role;
@@ -63,7 +58,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-/** Guard for server components and actions. */
 export async function requireAdmin() {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
@@ -76,4 +70,10 @@ export async function requireSuperAdmin() {
   const role = (session?.user as { role?: string } | undefined)?.role;
   if (role !== 'SUPER_ADMIN') return null;
   return session;
+}
+
+/** For UI checks in server components — returns the role or null. */
+export async function currentRole(): Promise<string | null> {
+  const session = await auth();
+  return (session?.user as { role?: string } | undefined)?.role ?? null;
 }

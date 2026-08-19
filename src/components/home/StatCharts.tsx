@@ -20,24 +20,23 @@ export function StatCharts({
   return (
     <div className="space-y-4">
       {stats.internalMarriages > 0 && (
-        <section className="rounded-[var(--radius-card)] border border-[var(--color-primary)] bg-[var(--color-paper-2)] p-5">
+        <section className="rounded-[var(--radius-card)] border-2 border-[var(--color-primary)] bg-[var(--color-paper-2)] p-5">
           <div className="flex flex-wrap items-baseline gap-3">
             <span className="font-[family-name:var(--font-display)] text-3xl font-extrabold text-[var(--color-primary)]">
               {formatNumber(stats.internalMarriages, locale)}
             </span>
             <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
-              {ar ? 'زيجة داخل العائلة' : 'marriages within the family'}
+              {ar ? '⚭ زيجة داخل العائلة' : '⚭ marriages within the family'}
             </h3>
             <span className="text-xs text-[var(--color-muted)]">
-              {ar
-                ? `من أصل ${formatNumber(stats.totalMarriages, locale)} زيجة مسجّلة`
-                : `of ${formatNumber(stats.totalMarriages, locale)} recorded marriages`}
+              {ar ? `من أصل ${formatNumber(stats.totalMarriages, locale)} زيجة مسجّلة`
+                  : `of ${formatNumber(stats.totalMarriages, locale)} recorded`}
             </span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">
             {ar
-              ? 'زيجاتٌ الزوجان فيها كلاهما من ذرية زين الدين الحربي — فتلتقي فروع العائلة من جديد بعد أن تفرّقت أجيالاً. وهي موثّقة في الشجرة من الطرفين معاً.'
-              : 'Marriages in which both partners descend from Zain al-Din al-Harbi — branches of the family meeting again after generations apart. Each is documented from both sides in the tree.'}
+              ? 'زيجاتٌ الزوجان فيها كلاهما من ذرية زين الدين الحربي — فروعٌ التقت من جديد بعد أن تفرّقت أجيالاً.'
+              : 'Marriages in which both partners descend from Zain al-Din al-Harbi — branches meeting again after generations apart.'}
           </p>
         </section>
       )}

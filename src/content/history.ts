@@ -259,8 +259,8 @@ export const TIMELINE: TimelineEvent[] = [
     year: '٢٠٢٦م', yearNum: 2026, kind: 'family',
     title: { ar: 'توثيق السجلّ رقمياً', en: 'The record goes digital' },
     body: {
-      ar: 'جُمع سجلّ العائلة المكتوب ووُثّق في قاعدة بيانات مفتوحة لأبناء العائلة، تضمّ أسماء العائلة عبر أجيالها، مع سياقها التاريخي وأماكنها ومدافنها.',
-      en: 'The family\'s written record was gathered into an open database for its members — the family\'s names across its generations, with their historical context, places and burial sites.',
+      ar: 'جُمع سجلّ العائلة المكتوب ووُثّق في قاعدة بيانات مفتوحة لأبناء العائلة، فيها ٢٧٠ اسماً في عشرة أجيال، مع سياقها التاريخي وأماكنها ومدافنها.',
+      en: 'The family\'s written record was gathered into an open database for its members — 270 names across ten generations, with their historical context, places and burial sites.',
     },
   },
 ];

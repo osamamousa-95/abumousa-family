@@ -348,7 +348,6 @@ model User {
   role          Role      @default(MEMBER)
   isApproved    Boolean   @default(false)
   isActive      Boolean   @default(true)
-  /// Forces a password change on next sign-in — set for every seeded account.
   mustChangePassword Boolean @default(false)
   locale        String    @default("ar")
 
@@ -389,13 +388,13 @@ model Session {
 
 /// One-time codes for password changes. Short-lived, single-use.
 model OtpToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   codeHash  String
-  purpose   String   @default("PASSWORD_CHANGE")
+  purpose   String    @default("PASSWORD_CHANGE")
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
 }

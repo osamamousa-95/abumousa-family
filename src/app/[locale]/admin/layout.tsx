@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { redirect } from 'next/navigation';
 import { auth, signOut } from '@/server/auth/config';
 import { Link } from '@/i18n/routing';
 import { Logo } from '@/components/brand/Logo';
@@ -11,8 +10,6 @@ export default async function AdminLayout({
 }: { children: ReactNode; params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const session = await auth();
-
-  // The login page renders inside this layout, so it must stay reachable.
   if (!session?.user) return <>{children}</>;
 
   const user = session.user as { role?: string; mustChangePassword?: boolean; name?: string };
@@ -33,9 +30,7 @@ export default async function AdminLayout({
           </Link>
           <nav className="mx-2 flex flex-1 gap-1 overflow-x-auto text-sm">
             <Link href="/admin/people" className="whitespace-nowrap rounded-full px-3 py-1.5 text-[var(--color-muted)] hover:bg-[var(--color-paper)] hover:text-[var(--color-primary)]">الأفراد</Link>
-            {isSuper && (
-              <Link href="/admin/users" className="whitespace-nowrap rounded-full px-3 py-1.5 text-[var(--color-muted)] hover:bg-[var(--color-paper)] hover:text-[var(--color-primary)]">المشرفون</Link>
-            )}
+            {isSuper && <Link href="/admin/users" className="whitespace-nowrap rounded-full px-3 py-1.5 text-[var(--color-muted)] hover:bg-[var(--color-paper)] hover:text-[var(--color-primary)]">المشرفون</Link>}
             <Link href="/admin/password" className="whitespace-nowrap rounded-full px-3 py-1.5 text-[var(--color-muted)] hover:bg-[var(--color-paper)] hover:text-[var(--color-primary)]">كلمة المرور</Link>
             <Link href="/" className="whitespace-nowrap rounded-full px-3 py-1.5 text-[var(--color-muted)] hover:bg-[var(--color-paper)] hover:text-[var(--color-primary)]">الموقع ←</Link>
           </nav>
@@ -44,14 +39,11 @@ export default async function AdminLayout({
           </form>
         </div>
       </header>
-
       {user.mustChangePassword && (
         <div className="border-b border-[var(--color-gold-500)] bg-[var(--color-gold-100)] px-4 py-3 text-center text-sm">
-          كلمة المرور الحالية مؤقتة —{' '}
-          <Link href="/admin/password" className="font-semibold underline">غيّرها الآن</Link>
+          كلمة المرور الحالية مؤقتة — <Link href="/admin/password" className="font-semibold underline">غيّرها الآن</Link>
         </div>
       )}
-
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>
   );
