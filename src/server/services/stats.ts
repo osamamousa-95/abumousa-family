@@ -26,7 +26,7 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
 
   const people = await prisma.person.findMany({
     where: { status: 'PUBLISHED' },
-    select: { name: true, slug: true, gender: true, generation: true, isMartyr: true },
+    select: { id: true, name: true, slug: true, fatherId: true, gender: true, generation: true, isMartyr: true },
   });
   if (people.length === 0) return null;
 
@@ -35,7 +35,7 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
   let males = 0;
   let females = 0;
   let unknownGender = 0;
-  const martyrs: { name: string; slug: string }[] = [];
+  const martyrs: { name: string; slug: string; fatherId: string | null }[] = [];
 
   for (const p of people) {
     nameCount.set(p.name, (nameCount.get(p.name) ?? 0) + 1);
@@ -43,8 +43,23 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
     if (p.gender === 'FEMALE') females++;
     else if (p.gender === 'MALE') males++;
     else unknownGender++;
-    if (p.isMartyr) martyrs.push({ name: p.name, slug: p.slug });
+    if (p.isMartyr) martyrs.push({ name: p.name, slug: p.slug, fatherId: p.fatherId });
   }
+
+  const personById = new Map(people.map((person) => [person.id, person]));
+  const martyrNames = martyrs.map(({ name, slug, fatherId }) => {
+    const parts = [name];
+    let currentId = fatherId;
+    let steps = 0;
+    while (currentId && steps < 3) {
+      const father = personById.get(currentId);
+      if (!father) break;
+      parts.push(father.name);
+      currentId = father.fatherId;
+      steps++;
+    }
+    return { name: parts.join(' '), slug };
+  });
 
   const topNames = [...nameCount.entries()]
     .map(([name, count]) => ({ name, count }))
@@ -62,7 +77,7 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
     males,
     females,
     unknownGender,
-    martyrs,
+    martyrs: martyrNames,
     topNames,
     perGeneration,
     internalMarriages,

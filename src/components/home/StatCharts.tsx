@@ -1,5 +1,6 @@
 import { formatNumber } from '@/lib/arabic';
 import type { FamilyStats } from '@/server/services/stats';
+import { Link } from '@/i18n/routing';
 
 /**
  * Bars are plain CSS widths rather than a charting library — a dependency the
@@ -38,9 +39,13 @@ export function StatCharts({
           <div className="martyr-marquee mt-4" aria-label={ar ? 'أسماء الشهداء' : 'Martyr names'}>
             <div className="martyr-marquee-track">
               {[...stats.martyrs, ...stats.martyrs].map((martyr, index) => (
-                <span key={`${martyr.slug}-${index}`} className="martyr-pill">
+                <Link
+                  key={`${martyr.slug}-${index}`}
+                  href={`/tree?person=${encodeURIComponent(martyr.slug)}`}
+                  className="martyr-pill"
+                >
                   <span aria-hidden>✦</span> {martyr.name}
-                </span>
+                </Link>
               ))}
             </div>
           </div>

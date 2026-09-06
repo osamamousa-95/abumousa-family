@@ -39,5 +39,6 @@ export const CREATOR = {
   social: [
     { label: 'Facebook', href: 'https://www.facebook.com/share/18JSABoTJ9/' },
     { label: 'Instagram', href: 'https://www.instagram.com/osamamousa204/' },
+    { label: 'WhatsApp: 00962785080491', href: 'https://wa.me/962785080491' },
   ],
 };
