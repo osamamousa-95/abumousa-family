@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-import { z } from 'zod';
 import { prisma } from '@/server/db/prisma';
 import { requireAdmin, requireSuperAdmin } from '@/server/auth/config';
 import { normalizeArabic } from '@/lib/arabic';
@@ -29,8 +28,12 @@ function childInputs(formData: FormData) {
 }
 
 async function saveChildren(parentId: string, formData: FormData) {
+  if (!formData.has('childrenSubmitted')) return;
   const children = childInputs(formData);
   const existingIds = children.flatMap((child) => child.id ? [child.id] : []);
+  if (new Set(existingIds).size !== existingIds.length) {
+    throw new Error('بيانات الأبناء غير صالحة.');
+  }
   const existing = await prisma.person.findMany({
     where: { id: { in: existingIds }, fatherId: parentId },
     select: { id: true },
@@ -44,6 +47,25 @@ async function saveChildren(parentId: string, formData: FormData) {
     where: { id: parentId }, select: { path: true, generation: true },
   });
   if (!parent) throw new Error('لم يُعثر على الأب.');
+
+  const removedChildren = await prisma.person.findMany({
+    where: {
+      fatherId: parentId,
+      ...(existingIds.length > 0 ? { id: { notIn: existingIds } } : {}),
+    },
+    select: { id: true, name: true, path: true },
+  });
+  for (const child of removedChildren) {
+    const descendants = await prisma.person.count({
+      where: { path: { startsWith: `${child.path}.` } },
+    });
+    if (descendants > 0) {
+      throw new Error(`لا يمكن حذف «${child.name}» قبل نقل ذريته أو حذفها.`);
+    }
+  }
+  if (removedChildren.length > 0) {
+    await prisma.person.deleteMany({ where: { id: { in: removedChildren.map((child) => child.id) } } });
+  }
 
   for (const child of children) {
     if (child.id) {
@@ -233,69 +255,6 @@ export async function importPeopleFromText(formData: FormData): Promise<Result> 
   for (const person of created) await log(session, 'create', person.id, { name: person.name, bulk: true });
   revalidatePath('/', 'layout');
   return { ok: true, message: `أُضيف ${created.length} فرداً. راجع الأسماء والروابط من شاشة التعديل.` };
-}
-
-const aiPersonSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  gender: z.enum(['MALE', 'FEMALE']).default('MALE'),
-  parentIndex: z.number().int().min(-1),
-});
-
-const aiPeopleSchema = z.array(aiPersonSchema).min(1).max(500);
-
-/** Optional local AI helper. It returns an editable draft, never database rows. */
-export async function analyzeBulkTextWithAi(text: string): Promise<{ ok: boolean; message: string; text?: string }> {
-  const session = await requireAdmin();
-  if (!session) return { ok: false, message: 'غير مصرّح.' };
-  if (!text.trim()) return { ok: false, message: 'ألصق النص أولاً.' };
-
-  const baseUrl = process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434';
-  const model = process.env.OLLAMA_MODEL ?? 'llama3.2';
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl.replace(/\/$/u, '')}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        stream: false,
-        format: 'json',
-        messages: [{
-          role: 'user',
-          content: `Extract only people and father-child relationships from this family document.
-Return ONLY JSON: {"people":[{"name":"...","gender":"MALE|FEMALE","parentIndex":-1}]}.
-parentIndex is the zero-based index of a previously listed father, or -1 for a root.
-Do not invent names. Ignore dates, places, spouses, headings, and uncertain prose.
-Document:\n${text.slice(0, 120000)}`,
-        }],
-      }),
-      signal: AbortSignal.timeout(45000),
-    });
-  } catch {
-    return { ok: false, message: 'تعذر الاتصال بـ Ollama. شغّله محلياً ثم أعد المحاولة.' };
-  }
-  if (!response.ok) return { ok: false, message: `تعذر تشغيل النموذج المحلي (${response.status}).` };
-
-  const payload = await response.json() as { message?: { content?: string } };
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(payload.message?.content ?? '');
-  } catch {
-    return { ok: false, message: 'أعاد النموذج نتيجة غير مفهومة. راجع النص أو استخدم التحليل العادي.' };
-  }
-  const checked = aiPeopleSchema.safeParse((parsedJson as { people?: unknown })?.people);
-  if (!checked.success) return { ok: false, message: 'نتيجة النموذج لم تجتز التحقق، ولم تُحفظ أي بيانات.' };
-
-  const lines: string[] = [];
-  const depths: number[] = [];
-  for (const [index, person] of checked.data.entries()) {
-    if (person.parentIndex >= index) return { ok: false, message: 'نتيجة النموذج تحتوي علاقة غير صالحة.' };
-    const parentDepth = person.parentIndex >= 0 ? depths[person.parentIndex] : -1;
-    const depth = parentDepth + 1;
-    depths.push(depth);
-    lines.push(`${'  '.repeat(depth)}${person.name}${person.gender === 'FEMALE' ? ' [أنثى]' : ''}`);
-  }
-  return { ok: true, message: `حلّل النموذج ${lines.length} فرداً. راجع المعاينة قبل الاستيراد.`, text: lines.join('\n') };
 }
 
 // ─────────────── Update — every field ───────────────

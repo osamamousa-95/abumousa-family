@@ -115,6 +115,7 @@ export function PersonEditor({
       >
         {!isNew && <input type="hidden" name="id" value={person.id} />}
         <input type="hidden" name="fatherId" value={father?.id ?? ''} />
+        <input type="hidden" name="childrenSubmitted" value="1" />
 
         {children.map((child) => (
           <input key={`id-${child.id}`} type="hidden" name="childId" value={child.id.startsWith('new-') ? '' : child.id} />
@@ -180,6 +181,15 @@ export function PersonEditor({
             >
               + إضافة ابن
             </button>
+            {children.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setChildren([])}
+                className="rounded-full border border-[var(--color-ox-300)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ox-700)] hover:bg-[var(--color-ox-100)]"
+              >
+                حذف كل الأبناء
+              </button>
+            )}
           </div>
 
           {children.length > 0 && (
@@ -206,16 +216,15 @@ export function PersonEditor({
                     </select>
                   </label>
                   <input type="hidden" name="childSortOrder" value={index + 1} />
-                  {child.id.startsWith('new-') && (
-                    <button
-                      type="button"
-                      onClick={() => setChildren((current) => current.filter((_, childIndex) => childIndex !== index))}
-                      className="mb-1 text-xs text-[var(--color-muted)] hover:text-[var(--color-ox-700)]"
-                      aria-label={`حذف صف ${index + 1}`}
-                    >
-                      حذف الصف
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setChildren((current) => current.filter((_, childIndex) => childIndex !== index))}
+                    className="mb-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] text-lg leading-none text-[var(--color-muted)] hover:border-[var(--color-ox-300)] hover:text-[var(--color-ox-700)]"
+                    aria-label={`حذف ${child.name || `صف ${index + 1}`}`}
+                    title="حذف الابن"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>

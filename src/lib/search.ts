@@ -20,11 +20,21 @@ export function tokenizeQuery(query: string): string[] {
 
 export function matchesLineage(ancestors: string[], tokens: string[]): boolean {
   if (tokens.length === 0) return false;
-  // Every token must match its corresponding ancestor, in order.
-  return tokens.every((tok, i) => {
-    const target = ancestors[i];
-    return target ? normalizeArabic(target).includes(tok) : false;
-  });
+  let tokenIndex = 0;
+  for (const ancestor of ancestors) {
+    const target = normalizeArabic(ancestor);
+    if (!target.includes(tokens[tokenIndex] ?? '')) return false;
+
+    let consumed = 1;
+    while (tokenIndex + consumed < tokens.length) {
+      const candidate = tokens.slice(tokenIndex, tokenIndex + consumed + 1).join(' ');
+      if (!target.includes(candidate)) break;
+      consumed++;
+    }
+    tokenIndex += consumed;
+    if (tokenIndex === tokens.length) return true;
+  }
+  return false;
 }
 
 /** Exact first-name matches sort first, then shallower generations. */
