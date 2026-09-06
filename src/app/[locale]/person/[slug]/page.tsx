@@ -12,6 +12,14 @@ import { currentRole } from '@/server/auth/config';
 import { CreatorCard } from '@/components/person/CreatorCard';
 import { CREATOR_SLUG } from '@/content/creator';
 
+function localizedValue(value: unknown, locale: string) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    return String(record[locale] ?? record.ar ?? record.en ?? '');
+  }
+  return String(value ?? '');
+}
+
 export const revalidate = 3600;
 export const dynamicParams = true;
 
@@ -117,6 +125,20 @@ export default async function PersonPage({
           </div>
         </Reveal>
 
+        {p.isMartyr && (
+          <Reveal delay={100}>
+            <section className="mt-7 rounded-2xl border-2 border-[var(--color-martyr-300)] bg-[var(--color-martyr-50)] p-6 text-center">
+              <p className="text-sm font-bold text-[var(--color-martyr-700)]">✦ {ar ? 'شهيد' : 'Martyr'}</p>
+              <p className="mt-3 font-[family-name:var(--font-quran)] text-2xl leading-loose text-[var(--color-martyr-700)]">
+                {ar
+                  ? 'وَلَا تَحْسَبَنَّ الَّذِينَ قُتِلُوا فِي سَبِيلِ اللَّهِ أَمْوَاتًا ۚ بَلْ أَحْيَاءٌ عِنْدَ رَبِّهِمْ يُرْزَقُونَ'
+                  : 'Do not think of those who are killed in the way of Allah as dead. Rather, they are alive with their Lord, receiving provision.'}
+              </p>
+              <p className="mt-2 text-xs text-[var(--color-muted)]">آل عمران ١٦٩ · Al Imran 3:169</p>
+            </section>
+          </Reveal>
+        )}
+
         {facts.length > 0 && (
           <Reveal delay={120}>
             <dl className="mt-7 divide-y divide-[var(--color-line)] overflow-hidden rounded-xl border border-[var(--color-line)]">
@@ -209,6 +231,35 @@ export default async function PersonPage({
             <section className="mt-9">
               <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">{t('biography')}</h2>
               <p className="mt-3 whitespace-pre-line leading-loose text-[var(--color-ink-2)]">{p.biography}</p>
+            </section>
+          </Reveal>
+        )}
+
+        {!redacted && p.notes && (
+          <Reveal delay={165}>
+            <section className="mt-8 rounded-2xl border border-[var(--color-martyr-300)] bg-[var(--color-martyr-50)] p-5">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-martyr-700)]">
+                {ar ? 'ملاحظات من سجل العائلة' : 'Family record notes'}
+              </h2>
+              <p className="mt-3 whitespace-pre-line leading-loose text-[var(--color-ink-2)]">{p.notes}</p>
+            </section>
+          </Reveal>
+        )}
+
+        {!redacted && p.sources.length > 0 && (
+          <Reveal delay={175}>
+            <section className="mt-8 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">
+                {ar ? 'المصادر' : 'Sources'}
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm text-[var(--color-ink-2)]">
+                {p.sources.map((source) => (
+                  <li key={source.id}>
+                    {localizedValue(source.source.title, locale)}{source.page ? ` · ${ar ? 'صفحة' : 'page'} ${source.page}` : ''}
+                    {source.note && <span className="block text-xs text-[var(--color-muted)]">{localizedValue(source.note, locale)}</span>}
+                  </li>
+                ))}
+              </ul>
             </section>
           </Reveal>
         )}

@@ -88,7 +88,7 @@ export default async function HomePage({
           ))}
         </Reveal>
 
-        {stats && stats.topNames.length > 0 && (
+        {stats && (
           <Reveal as="section" className="mt-12">
             <StatCharts stats={stats} locale={locale} />
           </Reveal>

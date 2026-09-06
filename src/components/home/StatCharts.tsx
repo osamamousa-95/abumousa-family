@@ -16,9 +16,37 @@ export function StatCharts({
   const ar = locale === 'ar';
   const maxName = Math.max(...stats.topNames.map((n) => n.count), 1);
   const maxGen = Math.max(...stats.perGeneration.map((g) => g.count), 1);
+  const genderTotal = stats.males + stats.females + stats.unknownGender;
+  const malePercent = genderTotal ? (stats.males / genderTotal) * 100 : 0;
+  const femalePercent = genderTotal ? (stats.females / genderTotal) * 100 : 0;
 
   return (
     <div className="space-y-4">
+      <section className="rounded-[var(--radius-card)] border-2 border-[var(--color-martyr-300)] bg-[var(--color-martyr-50)] p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-martyr-700)]">
+              {ar ? 'ذكرى الشهداء' : 'In remembrance'}
+            </p>
+            <h3 className="mt-1 font-[family-name:var(--font-display)] text-xl font-extrabold text-[var(--color-martyr-700)]">
+              {formatNumber(stats.martyrs.length, locale)} {ar ? 'شهداء موثّقون' : 'documented martyrs'}
+            </h3>
+          </div>
+          <span className="text-2xl text-[var(--color-martyr-500)]">✦</span>
+        </div>
+        {stats.martyrs.length > 0 && (
+          <div className="martyr-marquee mt-4" aria-label={ar ? 'أسماء الشهداء' : 'Martyr names'}>
+            <div className="martyr-marquee-track">
+              {[...stats.martyrs, ...stats.martyrs].map((martyr, index) => (
+                <span key={`${martyr.slug}-${index}`} className="martyr-pill">
+                  <span aria-hidden>✦</span> {martyr.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
       {stats.internalMarriages > 0 && (
         <section className="rounded-[var(--radius-card)] border-2 border-[var(--color-primary)] bg-[var(--color-paper-2)] p-5">
           <div className="flex flex-wrap items-baseline gap-3">
@@ -42,6 +70,28 @@ export function StatCharts({
       )}
 
     <div className="grid gap-4 sm:grid-cols-2">
+      <section className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5">
+        <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
+          {ar ? 'التوزيع حسب الجنس' : 'People by gender'}
+        </h3>
+        <div className="mt-5 flex items-center gap-5">
+          <div
+            className="relative h-28 w-28 flex-none rounded-full"
+            style={{ background: `conic-gradient(var(--color-branch-ati) 0 ${malePercent}%, var(--color-ox-500) ${malePercent}% ${malePercent + femalePercent}%, var(--color-muted) ${malePercent + femalePercent}% 100%)` }}
+            aria-label={`${stats.males} ${ar ? 'ذكور' : 'males'}, ${stats.females} ${ar ? 'إناث' : 'females'}`}
+          >
+            <div className="absolute inset-3 flex items-center justify-center rounded-full bg-[var(--color-paper-2)] font-[family-name:var(--font-display)] text-xl font-extrabold">
+              {formatNumber(stats.total, locale)}
+            </div>
+          </div>
+          <div className="space-y-2 text-sm">
+            <p><i className="stat-dot bg-[var(--color-branch-ati)]" />{formatNumber(stats.males, locale)} {ar ? 'ذكور' : 'males'}</p>
+            <p><i className="stat-dot bg-[var(--color-ox-500)]" />{formatNumber(stats.females, locale)} {ar ? 'إناث' : 'females'}</p>
+            {stats.unknownGender > 0 && <p><i className="stat-dot bg-[var(--color-muted)]" />{formatNumber(stats.unknownGender, locale)} {ar ? 'غير محدد' : 'unknown'}</p>}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5">
         <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
           {ar ? 'أكثر الأسماء تكراراً' : 'Most repeated names'}

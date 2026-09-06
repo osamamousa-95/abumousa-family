@@ -5,6 +5,7 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { notFound } from 'next/navigation';
 import { routing, type AppLocale } from '@/i18n/routing';
 import '../globals.css';
+import { ContributionNotice } from '@/components/layout/ContributionNotice';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -69,6 +70,7 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider messages={messages}>
           {children}
+          <ContributionNotice locale={locale} />
         </NextIntlClientProvider>
       </body>
     </html>

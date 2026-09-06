@@ -198,9 +198,10 @@ function TreeBranch({
 
         <Link
           href={`/person/${node.slug}`}
-          className="rounded-lg px-2 py-1 font-medium hover:bg-[var(--color-paper-2)] hover:text-[var(--color-primary)]"
+          className={`rounded-lg px-2 py-1 font-medium hover:bg-[var(--color-paper-2)] hover:text-[var(--color-primary)] ${node.isMartyr ? 'martyr-name' : ''}`}
         >
           {node.name}
+          {node.isMartyr && <span className="ms-1" title={locale === 'ar' ? 'شهيد' : 'Martyr'}>✦</span>}
           {node.isUncertain && (
             <span title={uncertainLabel} className="ms-1 text-[var(--color-gold-500)]">
               ٭
@@ -215,6 +216,7 @@ function TreeBranch({
           {node.burialPlace && <Badge tone="burial">مدفن</Badge>}
           {node.spouseName && !node.isInternalMarriage && <Badge tone="spouse">متزوج/ة</Badge>}
           {node.isInternalMarriage && <Badge tone="internal">⚭ زواج من العائلة</Badge>}
+          {node.isMartyr && <Badge tone="martyr">شهيد</Badge>}
           {node.isRedacted && <Badge tone="redacted" title={redactedLabel}>—</Badge>}
         </span>
       </div>
@@ -247,7 +249,7 @@ function Badge({
   title,
 }: {
   children: React.ReactNode;
-  tone: 'page' | 'burial' | 'spouse' | 'redacted' | 'internal';
+  tone: 'page' | 'burial' | 'spouse' | 'redacted' | 'internal' | 'martyr';
   title?: string;
 }) {
   const tones: Record<string, string> = {
@@ -256,6 +258,7 @@ function Badge({
     spouse: 'bg-[var(--color-gold-100)] text-[var(--color-gold-700)]',
     redacted: 'bg-[var(--color-paper-2)] text-[var(--color-muted)]',
     internal: 'bg-[var(--color-primary)] text-white',
+    martyr: 'bg-[var(--color-martyr-100)] text-[var(--color-martyr-700)]',
   };
   return (
     <span

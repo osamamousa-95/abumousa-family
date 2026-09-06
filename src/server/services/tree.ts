@@ -12,6 +12,7 @@ export interface TreeNodeDTO {
   path: string;
   fatherId: string | null;
   isLiving: boolean;
+  isMartyr: boolean;
   isUncertain: boolean;
   isRedacted: boolean;
   notebookPage: string | null;
@@ -47,6 +48,7 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       path: true,
       fatherId: true,
       isLiving: true,
+      isMartyr: true,
       nameConfidence: true,
       burialPlaceRaw: true,
       publicVisibility: true,
@@ -92,6 +94,7 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       path: r.path,
       fatherId: r.fatherId,
       isLiving: r.isLiving,
+      isMartyr: r.isMartyr,
       isUncertain: r.nameConfidence === 'UNCERTAIN',
       isRedacted: redacted,
       // Living people expose name and tree position only — decision §1.3
