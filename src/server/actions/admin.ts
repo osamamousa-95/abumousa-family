@@ -12,6 +12,68 @@ type Result = { ok: boolean; message: string };
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim() || null;
 
+function childInputs(formData: FormData) {
+  const ids = formData.getAll('childId').map((value) => String(value));
+  const names = formData.getAll('childName').map((value) => String(value).trim());
+  const genders = formData.getAll('childGender').map((value) => String(value));
+  return names
+    .map((name, index) => ({
+      id: ids[index] || null,
+      name,
+      gender: genders[index] === 'FEMALE' ? 'FEMALE' as const : 'MALE' as const,
+      sortOrder: index + 1,
+    }))
+    .filter((child) => child.name);
+}
+
+async function saveChildren(parentId: string, formData: FormData) {
+  const children = childInputs(formData);
+  const existingIds = children.flatMap((child) => child.id ? [child.id] : []);
+  const existing = await prisma.person.findMany({
+    where: { id: { in: existingIds }, fatherId: parentId },
+    select: { id: true },
+  });
+  const existingIdSet = new Set(existing.map((child) => child.id));
+  if (existingIdSet.size !== existingIds.length) {
+    throw new Error('بيانات الأبناء غير صالحة.');
+  }
+
+  const parent = await prisma.person.findUnique({
+    where: { id: parentId }, select: { path: true, generation: true },
+  });
+  if (!parent) throw new Error('لم يُعثر على الأب.');
+
+  for (const child of children) {
+    if (child.id) {
+      await prisma.person.update({
+        where: { id: child.id },
+        data: {
+          name: child.name,
+          nameNormalized: normalizeArabic(child.name),
+          nameLatin: transliterate(child.name) || null,
+          gender: child.gender,
+          sortOrder: child.sortOrder,
+        },
+      });
+    } else {
+      const childPath = `${parent.path}.${child.sortOrder}`;
+      await prisma.person.create({
+        data: {
+          name: child.name,
+          nameLatin: transliterate(child.name) || null,
+          nameNormalized: normalizeArabic(child.name),
+          slug: personSlug(child.name, childPath),
+          gender: child.gender,
+          fatherId: parentId,
+          sortOrder: child.sortOrder,
+          path: childPath,
+          generation: parent.generation + 1,
+        },
+      });
+    }
+  }
+}
+
 /** Recompute every path after any structural change. */
 async function recomputePaths() {
   const nodes = await prisma.person.findMany({
@@ -87,6 +149,12 @@ export async function addPerson(formData: FormData): Promise<Result> {
     },
   });
 
+  try {
+    await saveChildren(person.id, formData);
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'تعذر حفظ الأبناء.' };
+  }
+
   const spouseName = str(formData, 'spouseName');
   if (spouseName) {
     await prisma.marriage.create({
@@ -156,7 +224,13 @@ export async function updatePerson(formData: FormData): Promise<Result> {
     },
   });
 
-  if (structural) await recomputePaths();
+  try {
+    await saveChildren(id, formData);
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'تعذر حفظ الأبناء.' };
+  }
+
+  if (structural || childInputs(formData).length > 0) await recomputePaths();
   await log(session, 'update', id, { name });
   revalidatePath('/', 'layout');
   return { ok: true, message: structural ? 'حُفظت التعديلات وأُعيد ترقيم الشجرة.' : 'حُفظت التعديلات.' };

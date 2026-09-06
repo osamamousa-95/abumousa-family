@@ -11,6 +11,7 @@ export async function getAdminPeople(): Promise<AdminPerson[]> {
       sortOrder: true, fatherId: true, birthDateText: true, deathDateText: true,
       burialPlaceRaw: true, occupation: true, biography: true, notes: true,
       nameConfidence: true, isMartyr: true, isLiving: true, publicVisibility: true,
+      children: { orderBy: { sortOrder: 'asc' }, select: { id: true, name: true, gender: true, sortOrder: true } },
       marriagesAsHusband: {
         select: { id: true, wifeNameText: true, isInternal: true, notes: true, wife: { select: { name: true } } },
       },
@@ -55,6 +56,7 @@ export async function getAdminPeople(): Promise<AdminPerson[]> {
       isMartyr: r.isMartyr,
       isLiving: r.isLiving,
       publicVisibility: r.publicVisibility,
+      children: r.children,
       marriages: [
         ...r.marriagesAsHusband.map((m) => ({
           id: m.id, spouseName: m.wife?.name ?? m.wifeNameText ?? '—',

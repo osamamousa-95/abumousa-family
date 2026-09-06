@@ -27,6 +27,7 @@ export interface AdminPerson {
   isMartyr: boolean;
   isLiving: boolean;
   publicVisibility: string;
+  children: { id: string; name: string; gender: string; sortOrder: number }[];
   marriages: { id: string; spouseName: string; isInternal: boolean; notes: string }[];
 }
 
@@ -101,6 +102,9 @@ export function PersonEditor({
     person?.fatherId ? people.find((p) => p.id === person.fatherId) ?? null : null
   );
   const [spouseInFamily, setSpouseInFamily] = useState<AdminPerson | null>(null);
+  const [children, setChildren] = useState(
+    person?.children.map((child) => ({ ...child, id: child.id })) ?? []
+  );
 
   return (
     <div className="space-y-6">
@@ -111,6 +115,10 @@ export function PersonEditor({
       >
         {!isNew && <input type="hidden" name="id" value={person.id} />}
         <input type="hidden" name="fatherId" value={father?.id ?? ''} />
+
+        {children.map((child) => (
+          <input key={`id-${child.id}`} type="hidden" name="childId" value={child.id.startsWith('new-') ? '' : child.id} />
+        ))}
 
         <div>
           <span className="text-xs font-semibold text-[var(--color-muted)]">الأب</span>
@@ -156,6 +164,63 @@ export function PersonEditor({
               { value: 'ADMIN', label: 'للمشرفين فقط' },
             ]} />
         </div>
+
+        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-[family-name:var(--font-display)] text-sm font-bold">الأبناء</h3>
+              <p className="mt-1 text-[11px] text-[var(--color-muted)]">
+                أضف أبناء وبنات هذا الشخص هنا، ويمكن تعديل الأسماء والجنس لاحقاً.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setChildren((current) => [...current, { id: `new-${Date.now()}`, name: '', gender: 'MALE', sortOrder: current.length + 1 }])}
+              className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-xs font-semibold hover:border-[var(--color-primary)]"
+            >
+              + إضافة ابن
+            </button>
+          </div>
+
+          {children.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {children.map((child, index) => (
+                <div key={child.id} className="flex flex-wrap items-end gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] p-2">
+                  <label className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-[var(--color-muted)]">اسم الابن أو الابنة</span>
+                    <input
+                      name="childName"
+                      defaultValue={child.name}
+                      className="mt-1 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-paper-2)] px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)]"
+                    />
+                  </label>
+                  <label className="w-28">
+                    <span className="text-[11px] font-semibold text-[var(--color-muted)]">الجنس</span>
+                    <select
+                      name="childGender"
+                      defaultValue={child.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                      className="mt-1 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-paper-2)] px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)]"
+                    >
+                      <option value="MALE">ذكر</option>
+                      <option value="FEMALE">أنثى</option>
+                    </select>
+                  </label>
+                  <input type="hidden" name="childSortOrder" value={index + 1} />
+                  {child.id.startsWith('new-') && (
+                    <button
+                      type="button"
+                      onClick={() => setChildren((current) => current.filter((_, childIndex) => childIndex !== index))}
+                      className="mb-1 text-xs text-[var(--color-muted)] hover:text-[var(--color-ox-700)]"
+                      aria-label={`حذف صف ${index + 1}`}
+                    >
+                      حذف الصف
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Toggle label="على قيد الحياة" name="isLiving" defaultChecked={person?.isLiving ?? true}
