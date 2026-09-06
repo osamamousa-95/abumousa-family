@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { formatNumber } from '@/lib/arabic';
 import { tokenizeQuery, matchesLineage, rankResults } from '@/lib/search';
 import { PersonEditor, type AdminPerson } from './PersonEditor';
+import { BulkPeopleImport } from './BulkPeopleImport';
 
 export function PeopleManager({
   people, locale, canDelete, initialId,
@@ -11,7 +12,7 @@ export function PeopleManager({
   people: AdminPerson[]; locale: string; canDelete: boolean; initialId?: string;
 }) {
   const preselected = initialId ? people.find((p) => p.id === initialId) ?? null : null;
-  const [mode, setMode] = useState<'add' | 'edit'>(preselected ? 'edit' : 'add');
+  const [mode, setMode] = useState<'add' | 'bulk' | 'edit'>(preselected ? 'edit' : 'add');
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<AdminPerson | null>(preselected);
 
@@ -24,7 +25,7 @@ export function PeopleManager({
   return (
     <div>
       <div className="mb-6 flex gap-2">
-        {(['add', 'edit'] as const).map((m) => (
+        {(['add', 'bulk', 'edit'] as const).map((m) => (
           <button
             key={m}
             onClick={() => { setMode(m); setEditing(null); }}
@@ -33,12 +34,14 @@ export function PeopleManager({
                 ? 'bg-[var(--color-primary)] text-white'
                 : 'border border-[var(--color-line)] hover:border-[var(--color-primary)]'}`}
           >
-            {m === 'add' ? 'إضافة فرد' : 'تعديل فرد'}
+            {m === 'add' ? 'إضافة فرد' : m === 'bulk' ? 'استيراد جماعي' : 'تعديل فرد'}
           </button>
         ))}
       </div>
 
-      {mode === 'add' ? (
+      {mode === 'bulk' ? (
+        <BulkPeopleImport people={people} />
+      ) : mode === 'add' ? (
         <section className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-2)] p-5">
           <PersonEditor person={null} people={people} locale={locale} canDelete={false} />
         </section>

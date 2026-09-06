@@ -2,11 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { prisma } from '@/server/db/prisma';
 import { requireAdmin, requireSuperAdmin } from '@/server/auth/config';
 import { normalizeArabic } from '@/lib/arabic';
 import { personSlug, transliterate } from '@/lib/transliterate';
 import { computePaths } from '@/lib/tree-path';
+import { parseBulkFamilyText } from '@/lib/bulk-family';
 
 type Result = { ok: boolean; message: string };
 
@@ -169,6 +171,131 @@ export async function addPerson(formData: FormData): Promise<Result> {
   await log(session, 'create', person.id, { name });
   revalidatePath('/', 'layout');
   return { ok: true, message: `أُضيف «${name}» بنجاح.` };
+}
+
+export async function importPeopleFromText(formData: FormData): Promise<Result> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, message: 'غير مصرّح.' };
+
+  const text = String(formData.get('text') ?? '').trim();
+  const rootFatherId = str(formData, 'rootFatherId');
+  const parsed = parseBulkFamilyText(text);
+  if (!text || parsed.people.length === 0) return { ok: false, message: 'لم يتم العثور على أفراد للاستيراد.' };
+  if (parsed.people.length > 500) return { ok: false, message: 'الحد الأقصى ٥٠٠ فرد في العملية الواحدة.' };
+
+  const created = await prisma.$transaction(async (tx) => {
+    const rootFather = rootFatherId
+      ? await tx.person.findUnique({
+          where: { id: rootFatherId },
+          select: { id: true, path: true, generation: true, _count: { select: { children: true } } },
+        })
+      : null;
+    if (rootFatherId && !rootFather) throw new Error('لم يُعثر على الأب الأساسي.');
+
+    const createdByKey = new Map<string, { id: string; path: string; generation: number }>();
+    const rootOffset = rootFather?._count.children ?? 0;
+    const siblingCounts = new Map<string, number>();
+    const result: { id: string; name: string }[] = [];
+
+    for (const draft of parsed.people) {
+      const parent = draft.parentKey
+        ? createdByKey.get(draft.parentKey)
+        : rootFather
+          ? { id: rootFather.id, path: rootFather.path, generation: rootFather.generation }
+          : null;
+      if (draft.parentKey && !parent) throw new Error(`تعذر تحديد أب السطر ${draft.line}.`);
+
+      const parentKey = draft.parentKey ?? '__root__';
+      const sortOrder = (siblingCounts.get(parentKey) ?? (draft.parentKey ? 0 : rootOffset)) + 1;
+      siblingCounts.set(parentKey, sortOrder);
+      const path = parent ? `${parent.path}.${sortOrder}` : String(sortOrder);
+      const person = await tx.person.create({
+        data: {
+          name: draft.name,
+          nameLatin: transliterate(draft.name) || null,
+          nameNormalized: normalizeArabic(draft.name),
+          slug: personSlug(draft.name, `${path}-${draft.key}`),
+          gender: draft.gender,
+          fatherId: parent?.id ?? null,
+          sortOrder,
+          path,
+          generation: (parent?.generation ?? 0) + 1,
+        },
+        select: { id: true, name: true, path: true, generation: true },
+      });
+      createdByKey.set(draft.key, person);
+      result.push(person);
+    }
+    return result;
+  });
+
+  await recomputePaths();
+  for (const person of created) await log(session, 'create', person.id, { name: person.name, bulk: true });
+  revalidatePath('/', 'layout');
+  return { ok: true, message: `أُضيف ${created.length} فرداً. راجع الأسماء والروابط من شاشة التعديل.` };
+}
+
+const aiPersonSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  gender: z.enum(['MALE', 'FEMALE']).default('MALE'),
+  parentIndex: z.number().int().min(-1),
+});
+
+const aiPeopleSchema = z.array(aiPersonSchema).min(1).max(500);
+
+/** Optional local AI helper. It returns an editable draft, never database rows. */
+export async function analyzeBulkTextWithAi(text: string): Promise<{ ok: boolean; message: string; text?: string }> {
+  const session = await requireAdmin();
+  if (!session) return { ok: false, message: 'غير مصرّح.' };
+  if (!text.trim()) return { ok: false, message: 'ألصق النص أولاً.' };
+
+  const baseUrl = process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434';
+  const model = process.env.OLLAMA_MODEL ?? 'llama3.2';
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl.replace(/\/$/u, '')}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        stream: false,
+        format: 'json',
+        messages: [{
+          role: 'user',
+          content: `Extract only people and father-child relationships from this family document.
+Return ONLY JSON: {"people":[{"name":"...","gender":"MALE|FEMALE","parentIndex":-1}]}.
+parentIndex is the zero-based index of a previously listed father, or -1 for a root.
+Do not invent names. Ignore dates, places, spouses, headings, and uncertain prose.
+Document:\n${text.slice(0, 120000)}`,
+        }],
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+  } catch {
+    return { ok: false, message: 'تعذر الاتصال بـ Ollama. شغّله محلياً ثم أعد المحاولة.' };
+  }
+  if (!response.ok) return { ok: false, message: `تعذر تشغيل النموذج المحلي (${response.status}).` };
+
+  const payload = await response.json() as { message?: { content?: string } };
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(payload.message?.content ?? '');
+  } catch {
+    return { ok: false, message: 'أعاد النموذج نتيجة غير مفهومة. راجع النص أو استخدم التحليل العادي.' };
+  }
+  const checked = aiPeopleSchema.safeParse((parsedJson as { people?: unknown })?.people);
+  if (!checked.success) return { ok: false, message: 'نتيجة النموذج لم تجتز التحقق، ولم تُحفظ أي بيانات.' };
+
+  const lines: string[] = [];
+  const depths: number[] = [];
+  for (const [index, person] of checked.data.entries()) {
+    if (person.parentIndex >= index) return { ok: false, message: 'نتيجة النموذج تحتوي علاقة غير صالحة.' };
+    const parentDepth = person.parentIndex >= 0 ? depths[person.parentIndex] : -1;
+    const depth = parentDepth + 1;
+    depths.push(depth);
+    lines.push(`${'  '.repeat(depth)}${person.name}${person.gender === 'FEMALE' ? ' [أنثى]' : ''}`);
+  }
+  return { ok: true, message: `حلّل النموذج ${lines.length} فرداً. راجع المعاينة قبل الاستيراد.`, text: lines.join('\n') };
 }
 
 // ─────────────── Update — every field ───────────────
