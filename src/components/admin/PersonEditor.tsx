@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { formatNumber } from '@/lib/arabic';
 import { tokenizeQuery, matchesLineage, rankResults } from '@/lib/search';
-import { addPerson, updatePerson, deletePerson, addSpouse, deleteMarriage } from '@/server/actions/admin';
+import { addPerson, updatePerson, deletePerson, deletePeople, addSpouse, deleteMarriage } from '@/server/actions/admin';
 import { ActionForm, ConfirmButton } from './ActionForm';
 import { Field, Select, Toggle } from './Field';
 
@@ -105,6 +105,29 @@ export function PersonEditor({
   const [children, setChildren] = useState(
     person?.children.map((child) => ({ ...child, id: child.id })) ?? []
   );
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const existingChildren = children.filter((child) => !child.id.startsWith('new-'));
+  const allExistingSelected = existingChildren.length > 0 && existingChildren.every((child) => selectedChildren.includes(child.id));
+
+  const toggleChild = (id: string) => {
+    setSelectedChildren((current) => current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]);
+  };
+
+  const deleteSelectedChildren = () => {
+    if (selectedChildren.length === 0) return;
+    if (!confirm(`سيُحذف ${selectedChildren.length} فرداً محدداً وكل ذريتهم نهائياً. هل أنت متأكد؟`)) return;
+    if (!person) return;
+    void deletePeople(person.id, selectedChildren).then((result) => {
+      setDeleteMessage(result.message);
+      if (result.ok) {
+        setChildren((current) => current.filter((child) => !selectedChildren.includes(child.id)));
+        setSelectedChildren([]);
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -181,13 +204,22 @@ export function PersonEditor({
             >
               + إضافة ابن
             </button>
-            {children.length > 0 && (
+            {canDelete && existingChildren.length > 0 && (
               <button
                 type="button"
-                onClick={() => setChildren([])}
+                onClick={() => setSelectedChildren(allExistingSelected ? [] : existingChildren.map((child) => child.id))}
                 className="rounded-full border border-[var(--color-ox-300)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ox-700)] hover:bg-[var(--color-ox-100)]"
               >
-                حذف كل الأبناء
+                {allExistingSelected ? 'إلغاء تحديد الكل' : 'تحديد كل الأبناء'}
+              </button>
+            )}
+            {canDelete && selectedChildren.length > 0 && (
+              <button
+                type="button"
+                onClick={deleteSelectedChildren}
+                className="rounded-full bg-[var(--color-ox-700)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              >
+                حذف المحدد ({selectedChildren.length})
               </button>
             )}
           </div>
@@ -196,6 +228,15 @@ export function PersonEditor({
             <div className="mt-3 space-y-2">
               {children.map((child, index) => (
                 <div key={child.id} className="flex flex-wrap items-end gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] p-2">
+                  {canDelete && !child.id.startsWith('new-') && (
+                    <input
+                      type="checkbox"
+                      checked={selectedChildren.includes(child.id)}
+                      onChange={() => toggleChild(child.id)}
+                      className="mb-2 h-4 w-4 accent-[var(--color-primary)]"
+                      aria-label={`تحديد ${child.name}`}
+                    />
+                  )}
                   <label className="min-w-0 flex-1">
                     <span className="text-[11px] font-semibold text-[var(--color-muted)]">اسم الابن أو الابنة</span>
                     <input
@@ -216,19 +257,43 @@ export function PersonEditor({
                     </select>
                   </label>
                   <input type="hidden" name="childSortOrder" value={index + 1} />
-                  <button
-                    type="button"
-                    onClick={() => setChildren((current) => current.filter((_, childIndex) => childIndex !== index))}
-                    className="mb-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] text-lg leading-none text-[var(--color-muted)] hover:border-[var(--color-ox-300)] hover:text-[var(--color-ox-700)]"
-                    aria-label={`حذف ${child.name || `صف ${index + 1}`}`}
-                    title="حذف الابن"
-                  >
-                    ×
-                  </button>
+                  <div className="mb-1 flex gap-1">
+                    <button type="button" disabled={index === 0}
+                      onClick={() => setChildren((current) => {
+                        const next = [...current];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        return next;
+                      })}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] text-sm disabled:opacity-30"
+                      aria-label="نقل الابن إلى الأعلى" title="إلى الأعلى">↑</button>
+                    <button type="button" disabled={index === children.length - 1}
+                      onClick={() => setChildren((current) => {
+                        const next = [...current];
+                        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                        return next;
+                      })}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] text-sm disabled:opacity-30"
+                      aria-label="نقل الابن إلى الأسفل" title="إلى الأسفل">↓</button>
+                  </div>
+                  {(child.id.startsWith('new-') || canDelete) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (child.id.startsWith('new-')) setChildren((current) => current.filter((_, childIndex) => childIndex !== index));
+                        else toggleChild(child.id);
+                      }}
+                      className="mb-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-line)] text-lg leading-none text-[var(--color-muted)] hover:border-[var(--color-ox-300)] hover:text-[var(--color-ox-700)]"
+                      aria-label={`حذف ${child.name || `صف ${index + 1}`}`}
+                      title="حذف الابن"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           )}
+          {deleteMessage && <p className="mt-2 text-xs text-[var(--color-muted)]">{deleteMessage}</p>}
         </section>
 
         <div className="grid gap-3 sm:grid-cols-2">

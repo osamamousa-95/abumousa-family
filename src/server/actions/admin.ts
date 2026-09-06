@@ -7,7 +7,6 @@ import { requireAdmin, requireSuperAdmin } from '@/server/auth/config';
 import { normalizeArabic } from '@/lib/arabic';
 import { personSlug, transliterate } from '@/lib/transliterate';
 import { computePaths } from '@/lib/tree-path';
-import { parseBulkFamilyText } from '@/lib/bulk-family';
 
 type Result = { ok: boolean; message: string };
 
@@ -195,68 +194,6 @@ export async function addPerson(formData: FormData): Promise<Result> {
   return { ok: true, message: `أُضيف «${name}» بنجاح.` };
 }
 
-export async function importPeopleFromText(formData: FormData): Promise<Result> {
-  const session = await requireAdmin();
-  if (!session) return { ok: false, message: 'غير مصرّح.' };
-
-  const text = String(formData.get('text') ?? '').trim();
-  const rootFatherId = str(formData, 'rootFatherId');
-  const parsed = parseBulkFamilyText(text);
-  if (!text || parsed.people.length === 0) return { ok: false, message: 'لم يتم العثور على أفراد للاستيراد.' };
-  if (parsed.people.length > 500) return { ok: false, message: 'الحد الأقصى ٥٠٠ فرد في العملية الواحدة.' };
-
-  const created = await prisma.$transaction(async (tx) => {
-    const rootFather = rootFatherId
-      ? await tx.person.findUnique({
-          where: { id: rootFatherId },
-          select: { id: true, path: true, generation: true, _count: { select: { children: true } } },
-        })
-      : null;
-    if (rootFatherId && !rootFather) throw new Error('لم يُعثر على الأب الأساسي.');
-
-    const createdByKey = new Map<string, { id: string; path: string; generation: number }>();
-    const rootOffset = rootFather?._count.children ?? 0;
-    const siblingCounts = new Map<string, number>();
-    const result: { id: string; name: string }[] = [];
-
-    for (const draft of parsed.people) {
-      const parent = draft.parentKey
-        ? createdByKey.get(draft.parentKey)
-        : rootFather
-          ? { id: rootFather.id, path: rootFather.path, generation: rootFather.generation }
-          : null;
-      if (draft.parentKey && !parent) throw new Error(`تعذر تحديد أب السطر ${draft.line}.`);
-
-      const parentKey = draft.parentKey ?? '__root__';
-      const sortOrder = (siblingCounts.get(parentKey) ?? (draft.parentKey ? 0 : rootOffset)) + 1;
-      siblingCounts.set(parentKey, sortOrder);
-      const path = parent ? `${parent.path}.${sortOrder}` : String(sortOrder);
-      const person = await tx.person.create({
-        data: {
-          name: draft.name,
-          nameLatin: transliterate(draft.name) || null,
-          nameNormalized: normalizeArabic(draft.name),
-          slug: personSlug(draft.name, `${path}-${draft.key}`),
-          gender: draft.gender,
-          fatherId: parent?.id ?? null,
-          sortOrder,
-          path,
-          generation: (parent?.generation ?? 0) + 1,
-        },
-        select: { id: true, name: true, path: true, generation: true },
-      });
-      createdByKey.set(draft.key, person);
-      result.push(person);
-    }
-    return result;
-  });
-
-  await recomputePaths();
-  for (const person of created) await log(session, 'create', person.id, { name: person.name, bulk: true });
-  revalidatePath('/', 'layout');
-  return { ok: true, message: `أُضيف ${created.length} فرداً. راجع الأسماء والروابط من شاشة التعديل.` };
-}
-
 // ─────────────── Update — every field ───────────────
 
 export async function updatePerson(formData: FormData): Promise<Result> {
@@ -401,6 +338,37 @@ export async function deletePerson(id: string, cascade = false): Promise<Result>
     ok: true,
     message: `حُذف «${person.name}»${descendants ? ` ومعه ${descendants} من ذريته` : ''}.`,
   };
+}
+
+export async function deletePeople(parentId: string, ids: string[]): Promise<Result> {
+  const session = await requireSuperAdmin();
+  if (!session) return { ok: false, message: 'الحذف للمشرف الرئيسي فقط.' };
+
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (uniqueIds.length === 0) return { ok: false, message: 'اختر فرداً واحداً على الأقل.' };
+
+  const people = await prisma.person.findMany({
+    where: { id: { in: uniqueIds }, fatherId: parentId },
+    select: { id: true, name: true, path: true },
+  });
+  if (people.length !== uniqueIds.length) return { ok: false, message: 'لم يُعثر على أحد الأفراد المحددين.' };
+
+  const prefixes = people.map((person) => `${person.path}.`);
+  const descendants = await prisma.person.findMany({
+    where: { OR: prefixes.map((prefix) => ({ path: { startsWith: prefix } })) },
+    select: { id: true },
+  });
+  const allIds = [...new Set([...uniqueIds, ...descendants.map((person) => person.id)])];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.person.deleteMany({ where: { id: { in: allIds } } });
+  });
+  await recomputePaths();
+  for (const person of people) {
+    await log(session, 'delete', person.id, { name: person.name, descendants: allIds.length - uniqueIds.length });
+  }
+  revalidatePath('/', 'layout');
+  return { ok: true, message: `حُذف ${people.length} فرداً مع ذريتهم كاملة.` };
 }
 
 /** Move a whole subtree under a different father without deleting anything. */

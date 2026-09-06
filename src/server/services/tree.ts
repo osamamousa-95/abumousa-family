@@ -120,7 +120,7 @@ export async function getFullTree(viewer: Viewer): Promise<TreeNodeDTO | null> {
       steps++;
     }
     node.ancestors = chain;
-    node.lineage = chain.slice(0, 4).join(' بن ');
+    node.lineage = chain.slice(0, 4).join(' ');
   }
 
   let root: TreeNodeDTO | null = null;

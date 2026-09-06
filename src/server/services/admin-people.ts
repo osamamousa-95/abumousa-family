@@ -45,7 +45,7 @@ export async function getAdminPeople(): Promise<AdminPerson[]> {
       sortOrder: r.sortOrder,
       fatherId: r.fatherId,
       ancestors: chain,
-      lineage: chain.slice(0, 4).join(' بن '),
+      lineage: chain.slice(0, 4).join(' '),
       birthDateText: r.birthDateText ?? '',
       deathDateText: r.deathDateText ?? '',
       burialPlaceRaw: r.burialPlaceRaw ?? '',
