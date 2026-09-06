@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { formatNumber } from '@/lib/arabic';
@@ -10,9 +10,10 @@ import type { TreeNodeDTO } from '@/server/services/tree';
 interface Props {
   root: TreeNodeDTO;
   total: number;
+  initialSlug?: string;
 }
 
-export function TreeExplorer({ root, total }: Props) {
+export function TreeExplorer({ root, total, initialSlug }: Props) {
   const t = useTranslations('tree');
   const tp = useTranslations('person');
   const locale = useLocale();
@@ -24,6 +25,7 @@ export function TreeExplorer({ root, total }: Props) {
     return s;
   });
   const [query, setQuery] = useState('');
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const flat = useMemo(() => {
     const out: TreeNodeDTO[] = [];
@@ -66,6 +68,7 @@ export function TreeExplorer({ root, total }: Props) {
   /** Open every ancestor so the match becomes visible, then scroll to it. */
   const reveal = useCallback(
     (node: TreeNodeDTO) => {
+      setHighlightedId(node.id);
       setOpen((prev) => {
         const next = new Set(prev);
         let cur = parentOf.get(node.id);
@@ -77,14 +80,24 @@ export function TreeExplorer({ root, total }: Props) {
         return next;
       });
       setQuery('');
-      requestAnimationFrame(() => {
-        document
-          .getElementById(`node-${node.id}`)
-          ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      });
     },
     [parentOf]
   );
+
+  useEffect(() => {
+    if (!initialSlug) return;
+    const node = flat.find((item) => item.slug === initialSlug);
+    if (node) reveal(node);
+  }, [initialSlug, flat, reveal]);
+
+  useEffect(() => {
+    if (!highlightedId) return;
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`node-${highlightedId}`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [highlightedId, open]);
 
   const expandAll = () => setOpen(new Set(flat.map((n) => n.id)));
   const collapseAll = () => setOpen(new Set([root.id]));
@@ -154,6 +167,7 @@ export function TreeExplorer({ root, total }: Props) {
           node={root}
           open={open}
           toggle={toggle}
+          highlightedId={highlightedId}
           locale={locale}
           redactedLabel={tp('redacted')}
           uncertainLabel={tp('uncertain')}
@@ -167,6 +181,7 @@ function TreeBranch({
   node,
   open,
   toggle,
+  highlightedId,
   locale,
   redactedLabel,
   uncertainLabel,
@@ -174,6 +189,7 @@ function TreeBranch({
   node: TreeNodeDTO;
   open: Set<string>;
   toggle: (id: string) => void;
+  highlightedId: string | null;
   locale: string;
   redactedLabel: string;
   uncertainLabel: string;
@@ -198,7 +214,8 @@ function TreeBranch({
 
         <Link
           href={`/person/${node.slug}`}
-          className={`rounded-lg px-2 py-1 font-medium hover:bg-[var(--color-paper-2)] hover:text-[var(--color-primary)] ${node.isMartyr ? 'martyr-name' : ''}`}
+          className={`rounded-lg px-2 py-1 font-medium hover:bg-[var(--color-paper-2)] hover:text-[var(--color-primary)] ${node.isMartyr ? 'martyr-name' : ''} ${highlightedId === node.id ? 'bg-[var(--color-martyr-100)] text-[var(--color-martyr-700)] ring-2 ring-[var(--color-martyr-300)]' : ''}`}
+          aria-current={highlightedId === node.id ? 'true' : undefined}
         >
           {node.name}
           {node.isMartyr && <span className="ms-1" title={locale === 'ar' ? 'شهيد' : 'Martyr'}>✦</span>}
@@ -232,6 +249,7 @@ function TreeBranch({
               node={c}
               open={open}
               toggle={toggle}
+              highlightedId={highlightedId}
               locale={locale}
               redactedLabel={redactedLabel}
               uncertainLabel={uncertainLabel}

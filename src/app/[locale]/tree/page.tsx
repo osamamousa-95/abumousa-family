@@ -19,8 +19,13 @@ export async function generateMetadata({
 
 export default async function TreePage({
   params,
-}: { params: Promise<{ locale: string }> }) {
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ person?: string }>;
+}) {
   const { locale } = await params;
+  const { person } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations('nav');
 
@@ -52,7 +57,7 @@ export default async function TreePage({
             </div>
 
             <div className="mt-9">
-              <TreeExplorer root={root} total={all.length} />
+              <TreeExplorer root={root} total={all.length} initialSlug={person} />
             </div>
           </>
         )}

@@ -94,6 +94,25 @@ export default async function HomePage({
           </Reveal>
         )}
 
+        {stats?.martyrs.length ? (
+          <Reveal as="section" className="mt-12">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold">
+              {locale === 'ar' ? 'شهداء العائلة' : 'Family martyrs'}
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {stats.martyrs.map((martyr) => (
+                <Link
+                  key={martyr.slug}
+                  href={`/tree?person=${encodeURIComponent(martyr.slug)}`}
+                  className="rounded-full border border-[var(--color-martyr-300)] bg-[var(--color-martyr-50)] px-4 py-2 font-medium text-[var(--color-martyr-700)] transition hover:border-[var(--color-martyr-700)]"
+                >
+                  {martyr.name}
+                </Link>
+              ))}
+            </div>
+          </Reveal>
+        ) : null}
+
         <Reveal as="section" className="mt-16">
           <blockquote className="rounded-2xl bg-[var(--color-gold-100)] p-7 text-center">
             <p className="font-[family-name:var(--font-quran)] text-lg leading-loose sm:text-xl">
