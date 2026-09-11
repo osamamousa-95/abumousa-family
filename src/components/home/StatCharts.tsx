@@ -38,14 +38,19 @@ export function StatCharts({
         {stats.martyrs.length > 0 && (
           <div className="martyr-marquee mt-4" aria-label={ar ? 'أسماء الشهداء' : 'Martyr names'}>
             <div className="martyr-marquee-track">
-              {[...stats.martyrs, ...stats.martyrs].map((martyr, index) => (
-                <Link
-                  key={`${martyr.slug}-${index}`}
-                  href={`/tree?person=${encodeURIComponent(martyr.slug)}`}
-                  className="martyr-pill"
-                >
-                  <span aria-hidden>✦</span> {martyr.name}
-                </Link>
+              {[0, 1].map((group) => (
+                <div className="martyr-marquee-group" key={group} aria-hidden={group === 1}>
+                  {stats.martyrs.map((martyr) => (
+                    <Link
+                      key={`${group}-${martyr.slug}`}
+                      href={`/tree?person=${encodeURIComponent(martyr.slug)}`}
+                      className="martyr-pill"
+                      tabIndex={group === 1 ? -1 : undefined}
+                    >
+                      <span aria-hidden>✦</span> {martyr.name}
+                    </Link>
+                  ))}
+                </div>
               ))}
             </div>
           </div>

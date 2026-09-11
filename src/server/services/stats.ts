@@ -1,4 +1,5 @@
 import 'server-only';
+import { normalizeArabic } from '@/lib/arabic';
 import { prisma } from '@/server/db/prisma';
 
 export interface FamilyStats {
@@ -30,7 +31,7 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
   });
   if (people.length === 0) return null;
 
-  const nameCount = new Map<string, number>();
+  const nameCount = new Map<string, { name: string; count: number }>();
   const genCount = new Map<number, number>();
   let males = 0;
   let females = 0;
@@ -38,7 +39,10 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
   const martyrs: { name: string; slug: string; fatherId: string | null }[] = [];
 
   for (const p of people) {
-    nameCount.set(p.name, (nameCount.get(p.name) ?? 0) + 1);
+    const normalizedName = normalizeArabic(p.name);
+    const nameEntry = nameCount.get(normalizedName);
+    if (nameEntry) nameEntry.count++;
+    else nameCount.set(normalizedName, { name: p.name, count: 1 });
     genCount.set(p.generation, (genCount.get(p.generation) ?? 0) + 1);
     if (p.gender === 'FEMALE') females++;
     else if (p.gender === 'MALE') males++;
@@ -62,7 +66,7 @@ export async function getFamilyStats(): Promise<FamilyStats | null> {
   });
 
   const topNames = [...nameCount.entries()]
-    .map(([name, count]) => ({ name, count }))
+    .map(([, nameEntry]) => nameEntry)
     .filter((n) => n.count > 1)
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'))
     .slice(0, 8);
